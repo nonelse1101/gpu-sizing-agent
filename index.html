@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GPU Recommender | Google Cloud</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Google Sans, Google Sans Text, Roboto, Roboto Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&family=Google+Sans+Text:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Roboto+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Google Sans', 'Google Sans Text', 'Roboto', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['Roboto Mono', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            google: {
+              blue: '#1a73e8',
+              'blue-hover': '#174ea6',
+              'blue-bg': '#e8f0fe',
+              'blue-border': '#d2e3fc',
+              green: '#188038',
+              'green-hover': '#137333',
+              'green-bg': '#e6f4ea',
+              'green-border': '#ceead6',
+              amber: '#b06000',
+              'amber-bg': '#fef7e0',
+              'amber-border': '#feefc3',
+              red: '#d93025',
+              'red-bg': '#fce8e6',
+              'red-border': '#fad2cf'
+            }
+          }
+        }
+      }
+    };
+    (function () {
+      try {
+        var saved = localStorage.getItem('gpu_sizing_theme');
+        if (saved === 'light') {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.add('light');
+        } else {
+          document.documentElement.classList.remove('light');
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="min-h-screen flex flex-col selection:bg-blue-500 selection:text-white">
+  <!-- Google Cloud 4-Color Accent Strip -->
+  <div class="gcp-four-color-bar"></div>
+
+  <!-- Top Notice Banner -->
+  <div class="confidential-banner px-4 py-1.5 text-xs flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-center">
+    <span><strong>Open-Source Reference</strong> &mdash; AI Infrastructure Sizing, Roofline Physics &amp; Unit Economics Calculator (Public Reference Rates)</span>
+  </div>
+
+  <!-- =========================================================================
+       TOP HEADER NAVIGATION (Mirrors TPU Recommender HeaderNavSection)
+       ========================================================================= -->
+  <header class="border-b border-[#dadce0] bg-white sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 lg:px-8 h-16 flex items-center justify-between gap-3">
+      <!-- Brand Identity -->
+      <div class="flex items-center space-x-3 shrink-0">
+        <div class="flex items-center gap-2.5">
+          <!-- Google Cloud 4-Color Hex Icon -->
+          <svg class="w-6 h-6 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3L4 7.5V16.5L12 21L20 16.5V7.5L12 3Z" stroke="#8ab4f8" stroke-width="1.8" fill="rgba(26,115,232,0.12)"/>
+            <circle cx="12" cy="12" r="3" fill="#1a73e8"/>
+          </svg>
+          <h1 class="text-lg sm:text-xl font-normal text-[#5f6368] tracking-tight flex items-center">
+            <span class="font-medium text-[#202124]">Google Cloud</span>
+            <span class="mx-2 text-[#dadce0] font-light">|</span>
+            <span class="text-[#1a73e8] font-medium">GPU Recommender</span>
+          </h1>
+        </div>
+      </div>
+
+      <!-- Segmented Persona Switcher: 1. Overview | 2. GPU Recommender | 3. Engineering Cockpit -->
+      <div class="flex items-center bg-[#f1f3f4] p-1 rounded-lg border border-[#dadce0]">
+        <button type="button" id="personaBtnOverview" data-view="overview" class="flex items-center space-x-1.5 px-3 sm:px-3.5 py-1.5 rounded-md text-xs font-medium transition bg-[#1a73e8] text-white shadow-xs">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <span>Overview</span>
+        </button>
+        <button type="button" id="personaBtnRecommender" data-view="recommender" class="flex items-center space-x-1.5 px-3 sm:px-3.5 py-1.5 rounded-md text-xs font-medium transition text-[#5f6368] hover:text-[#202124]">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          <span>GPU Recommender</span>
+        </button>
+        <button type="button" id="personaBtnCockpit" data-view="cockpit" class="flex items-center space-x-1.5 px-3 sm:px-3.5 py-1.5 rounded-md text-xs font-medium transition text-[#5f6368] hover:text-[#202124]">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span>Engineering Cockpit</span>
+        </button>
+      </div>
+
+      <!-- Right Action Buttons -->
+      <div class="flex items-center space-x-2">
+        <button type="button" id="btnOpenDeckModal" class="px-3 py-1.5 rounded-md bg-[#e8f0fe] hover:bg-[#d2e3fc] text-[#174ea6] border border-[#d2e3fc] text-xs font-medium transition flex items-center space-x-1.5">
+          <svg class="w-3.5 h-3.5 text-[#1a73e8]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+          <span class="hidden md:inline">Executive Pitch Deck</span>
+        </button>
+        <button type="button" id="btnOpenCheatSheet" class="px-3 py-1.5 rounded-md bg-white hover:bg-[#f1f3f4] text-[#3c4043] border border-[#dadce0] text-xs font-medium transition flex items-center space-x-1.5">
+          <svg class="w-3.5 h-3.5 text-[#188038]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+          <span class="hidden sm:inline">Discovery Guide</span>
+        </button>
+        <a href="https://tpu-sizing-agent-q2fm2rxu6a-uc.a.run.app/" target="_blank" rel="noopener noreferrer" title="Open Companion TPU Sizing Agent" class="px-2.5 py-1.5 rounded-md bg-white hover:bg-[#f1f3f4] text-[#188038] border border-[#dadce0] text-xs font-medium transition flex items-center space-x-1.5">
+          <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+          <span class="hidden lg:inline">TPU Sizing Agent &nearr;</span>
+        </a>
+        <a href="https://github.com/nonelse1101/gpu-sizing-agent" target="_blank" rel="noopener noreferrer" title="View on GitHub & Contribute PRs" class="px-2.5 py-1.5 rounded-md bg-white hover:bg-[#f1f3f4] text-[#3c4043] border border-[#dadce0] text-xs font-medium transition flex items-center space-x-1.5">
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span class="hidden sm:inline">GitHub</span>
+        </a>
+        <button type="button" id="themeToggleBtn" title="Switch Dark / Light Theme" class="px-2.5 py-1.5 rounded-md bg-white hover:bg-[#f1f3f4] text-[#5f6368] hover:text-[#202124] border border-[#dadce0] text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer">
+          <svg id="themeIconSun" class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg id="themeIconMoon" class="w-4 h-4 text-[#5f6368] hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          <span id="themeToggleLabel" class="hidden sm:inline">Light</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       MAIN WORKSPACE CONTAINER
+       ========================================================================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-6">
+
+    <!-- =======================================================================
+         VIEW 1: EXECUTIVE OVERVIEW (Mirrors & Elevates ExecutiveOverviewSection)
+         ======================================================================= -->
+    <div id="overviewViewContainer" class="w-full mx-auto space-y-6">
+      <!-- Header -->
+      <div class="pb-4 border-b border-[#dadce0] flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h2 class="text-2xl sm:text-3xl font-bold text-[#202124]">Overview</h2>
+          <p class="text-sm text-[#5f6368] mt-1">
+            High-level GPU cluster capacity, throughput, and unit economics ($/1M tokens) by enterprise AI use case on Google Cloud.
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-semibold text-[#5f6368] uppercase tracking-wider">Deployment Region:</span>
+          <select id="ovRegionSelect" class="bg-white border border-[#dadce0] rounded-lg px-3 py-1.5 text-xs font-semibold text-[#202124]">
+            <option value="us-central1">Global / US (us-central1, us-east4)</option>
+            <option value="asia-southeast1">APAC — Singapore (asia-southeast1)</option>
+            <option value="asia-northeast1">APAC — Tokyo (asia-northeast1)</option>
+            <option value="asia-south1">APAC — India (asia-south1 / south2)</option>
+            <option value="europe-west4">EMEA — Netherlands (europe-west4)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 4 ENTERPRISE USE-CASE CARDS (Hover tooltips + Active dot) -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-semibold text-[#5f6368] uppercase tracking-wider">Select Enterprise Use Case</div>
+          <div class="text-xs sm:text-sm text-[#5f6368] hidden sm:block">Hover over a card for workload profile, SLA &amp; recommended GPU architecture</div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="execModelTierGrid">
+          <!-- Card 1: Conversational AI & Assistants -->
+          <button type="button" data-tier="small" id="tierCard-small" class="tier-card group relative hover:z-30 p-5 rounded-lg border text-left transition flex flex-col justify-between bg-white border-[#dadce0] hover:border-[#1a73e8] shadow-xs cursor-pointer">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <span class="tier-title text-lg font-bold leading-snug text-[#202124]">Conversational AI &amp; Assistants</span>
+                <span class="tier-active-dot w-2.5 h-2.5 rounded-full bg-[#1a73e8] shrink-0 mt-1.5 hidden"></span>
+              </div>
+              <div class="text-sm text-[#5f6368] mt-1.5 leading-relaxed">e.g. Gemma-3 27B, Llama 3.1 8B, Qwen 14B</div>
+            </div>
+            <div class="tier-price text-base sm:text-lg font-bold text-[#202124] mt-4" id="tierPrice-small">Serving &asymp; $15.5K/mo</div>
+            <div role="tooltip" class="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute left-0 right-0 top-full mt-2 z-30 p-4 rounded-lg bg-white text-[#3c4043] text-sm leading-relaxed shadow-xl border border-[#dadce0]">
+              <div class="font-bold text-[#1a73e8] mb-1.5">Workload Profile &amp; SLA (100 QPS avg)</div>
+              <div>Customer support bots, real-time chat &amp; classification (1K in / 512 out &bull; TTFT &lt; 300 ms).</div>
+              <div class="mt-2 pt-2 border-t border-[#dadce0] text-xs text-[#5f6368]"><span class="font-semibold text-[#202124]">Preferred GPU:</span> G4 (RTX PRO 6000 96GB) or L4 (G2)</div>
+            </div>
+          </button>
+
+          <!-- Card 2: High-Throughput Enterprise Serving & Agentic AI [Default Active] -->
+          <button type="button" data-tier="medium" id="tierCard-medium" class="tier-card group relative hover:z-30 p-5 rounded-lg border-2 text-left transition flex flex-col justify-between bg-[#e8f0fe] border-[#1a73e8] shadow-xs cursor-pointer">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <span class="tier-title text-lg font-bold leading-snug text-[#174ea6]">Agentic AI &amp; High-Rate 70B Serving</span>
+                <span class="tier-active-dot w-2.5 h-2.5 rounded-full bg-[#1a73e8] shrink-0 mt-1.5"></span>
+              </div>
+              <div class="text-sm text-[#5f6368] mt-1.5 leading-relaxed">e.g. Llama 3.3 70B FP8, Qwen 72B, Nemotron 70B</div>
+            </div>
+            <div class="tier-price text-base sm:text-lg font-bold text-[#1a73e8] mt-4" id="tierPrice-medium">Serving &asymp; $298K/mo</div>
+            <div role="tooltip" class="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute left-0 right-0 top-full mt-2 z-30 p-4 rounded-lg bg-white text-[#3c4043] text-sm leading-relaxed shadow-xl border border-[#dadce0]">
+              <div class="font-bold text-[#1a73e8] mb-1.5">Workload Profile &amp; SLA (6M tok/min = 100k tok/s)</div>
+              <div>Multi-step agentic tool use, coding assistants &amp; enterprise workflows (2K in / 512 out &bull; TPOT &le; 25 ms).</div>
+              <div class="mt-2 pt-2 border-t border-[#dadce0] text-xs text-[#5f6368]"><span class="font-semibold text-[#202124]">Preferred GPU:</span> NVIDIA B200 (A4) or H100 (A3 Mega)</div>
+            </div>
+          </button>
+
+          <!-- Card 3: Long-Context & Frontier MoE Serving -->
+          <button type="button" data-tier="large" id="tierCard-large" class="tier-card group relative hover:z-30 p-5 rounded-lg border text-left transition flex flex-col justify-between bg-white border-[#dadce0] hover:border-[#1a73e8] shadow-xs cursor-pointer">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <span class="tier-title text-lg font-bold leading-snug text-[#202124]">Long-Context &amp; Frontier MoE RAG</span>
+                <span class="tier-active-dot w-2.5 h-2.5 rounded-full bg-[#1a73e8] shrink-0 mt-1.5 hidden"></span>
+              </div>
+              <div class="text-sm text-[#5f6368] mt-1.5 leading-relaxed">e.g. Qwen3.5-397B-A17B, DeepSeek-V3 671B</div>
+            </div>
+            <div class="tier-price text-base sm:text-lg font-bold text-[#202124] mt-4" id="tierPrice-large">Serving &asymp; $397K/mo</div>
+            <div role="tooltip" class="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute left-0 right-0 top-full mt-2 z-30 p-4 rounded-lg bg-white text-[#3c4043] text-sm leading-relaxed shadow-xl border border-[#dadce0]">
+              <div class="font-bold text-[#1a73e8] mb-1.5">Workload Profile &amp; SLA (Long Context 32K–128K)</div>
+              <div>Multi-document synthesis, financial/legal RAG &amp; reasoning MoE (16K in / 2K out &bull; Disaggregated llm-d).</div>
+              <div class="mt-2 pt-2 border-t border-[#dadce0] text-xs text-[#5f6368]"><span class="font-semibold text-[#202124]">Preferred GPU:</span> NVIDIA B200 (1,440 GB/node) or H200 (1,128 GB/node)</div>
+            </div>
+          </button>
+
+          <!-- Card 4: Frontier Model Training -->
+          <button type="button" data-tier="frontier" id="tierCard-frontier" class="tier-card group relative hover:z-30 p-5 rounded-lg border text-left transition flex flex-col justify-between bg-white border-[#dadce0] hover:border-[#1a73e8] shadow-xs cursor-pointer">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <span class="tier-title text-lg font-bold leading-snug text-[#202124]">Frontier Model Training &amp; RL</span>
+                <span class="tier-active-dot w-2.5 h-2.5 rounded-full bg-[#1a73e8] shrink-0 mt-1.5 hidden"></span>
+              </div>
+              <div class="text-sm text-[#5f6368] mt-1.5 leading-relaxed">e.g. 70B–671B Pre-Training, SFT &amp; GRPO RL</div>
+            </div>
+            <div class="tier-price text-base sm:text-lg font-bold text-[#202124] mt-4" id="tierPrice-frontier">512 GPUs &middot; ~42 days</div>
+            <div role="tooltip" class="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute left-0 right-0 top-full mt-2 z-30 p-4 rounded-lg bg-white text-[#3c4043] text-sm leading-relaxed shadow-xl border border-[#dadce0]">
+              <div class="font-bold text-[#1a73e8] mb-1.5">Workload Profile &amp; Scale (64× A4 Nodes = 512 B200 GPUs)</div>
+              <div>Foundation pre-training (15T tokens) and large-scale reinforcement learning over 3.2 Tbps RoCEv2 fabric.</div>
+              <div class="mt-2 pt-2 border-t border-[#dadce0] text-xs text-[#5f6368]"><span class="font-semibold text-[#202124]">Preferred GPU:</span> NVIDIA B200 (a4-highgpu-8g)</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- RECOMMENDED SIZING VERDICT (3 KPIs + Lens Switcher + Pricing Basis) -->
+      <div class="bg-white border border-[#dadce0] rounded-lg p-6 sm:p-7 shadow-xs space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-5 border-b border-[#dadce0]">
+          <div>
+            <div class="text-xs font-semibold text-[#5f6368] uppercase tracking-wider">Recommended Sizing Verdict</div>
+            <h3 class="text-2xl font-bold text-[#202124] mt-1 flex items-center gap-2.5 flex-wrap">
+              <span id="execAdvVerdictName">Agentic AI &amp; High-Rate 70B Serving</span>
+              <span class="text-sm font-bold text-[#5f6368]">&bull;</span>
+              <span class="text-xs px-3 py-1 rounded-md bg-[#e8f0fe] text-[#174ea6] font-bold border border-[#d2e3fc]" id="execAdvVerdictScore">Preferred GPU: NVIDIA B200 (a4-highgpu-8g)</span>
+            </h3>
+            <div class="text-sm text-[#5f6368] mt-1.5" id="execAdvVerdictContext">
+              Sized Reference: Llama-3.3 70B Dense (FP8, ~70 GB weights) &bull; 6.0M tok/min (100,000 tok/s aggregate, 259.2B tok/mo)
+            </div>
+          </div>
+
+          <!-- Workload Lens Switcher -->
+          <div class="flex items-center gap-2.5 flex-wrap shrink-0">
+            <span class="text-xs font-semibold text-[#5f6368] uppercase tracking-wider">Workload:</span>
+            <div class="inline-flex p-1 bg-[#f8f9fa] rounded-lg border border-[#dadce0] text-sm flex-wrap gap-1.5" role="group">
+              <button type="button" data-lens="serving" id="lensBtn-serving" aria-pressed="true" class="gcp-segmented-btn px-4 py-1.5 font-bold rounded-md bg-[#e8f0fe] text-[#174ea6] border border-[#1a73e8] shadow-xs transition cursor-pointer">Real-Time Serving</button>
+              <button type="button" data-lens="posttrain" id="lensBtn-posttrain" aria-pressed="false" class="gcp-segmented-btn px-4 py-1.5 font-medium rounded-md bg-white text-[#3c4043] border border-[#dadce0] hover:bg-[#f8f9fa] hover:border-[#1a73e8] transition cursor-pointer">Fine-Tuning (SFT / RL)</button>
+              <button type="button" data-lens="pretrain" id="lensBtn-pretrain" aria-pressed="false" class="gcp-segmented-btn px-4 py-1.5 font-medium rounded-md bg-white text-[#3c4043] border border-[#dadce0] hover:bg-[#f8f9fa] hover:border-[#1a73e8] transition cursor-pointer">Pre-Training</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 KPI BOXES -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="bg-[#f8f9fa] border border-[#dadce0] rounded-lg p-5">
+            <div class="text-sm text-[#5f6368] font-medium" id="ovKpi1Label">Serving Pool</div>
+            <div class="text-3xl font-bold text-[#202124] mt-1.5 font-mono" id="ovKpi1Value">48 GPUs (6 Nodes)</div>
+            <div class="text-sm text-[#5f6368] mt-1" id="ovKpi1Sub">6× a4-highgpu-8g hosts (16 prefill + 32 decode GPUs) &bull; 3,000 tok/s/GPU @ 80% util</div>
+          </div>
+          <div class="bg-[#f8f9fa] border border-[#dadce0] rounded-lg p-5">
+            <div class="text-sm text-[#5f6368] font-medium" id="ovKpi2Label">Monthly Cost</div>
+            <div class="text-3xl font-bold text-[#202124] mt-1.5 font-mono" id="ovKpi2Value">$298.2K / mo</div>
+            <div class="text-sm text-[#5f6368] mt-1" id="ovKpi2Sub">3-yr CUD reference ($8.506/GPU-hr &bull; $3.58M/yr)</div>
+          </div>
+          <div class="bg-[#f8f9fa] border border-[#dadce0] rounded-lg p-5">
+            <div class="text-sm text-[#5f6368] font-medium" id="ovKpi3Label">Unit Economics</div>
+            <div class="text-3xl font-bold text-[#1a73e8] mt-1.5 font-mono" id="ovKpi3Value">$1.15 / 1M tok</div>
+            <div class="text-sm text-[#5f6368] mt-1" id="ovKpi3Sub">Per 1M tokens &bull; 259.2B tokens/month at target load</div>
+          </div>
+        </div>
+
+        <!-- Regional Capacity Advisory & TPU7x Device-Parity Callout -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="p-4 rounded-lg bg-amber-50 border border-amber-300 text-xs leading-relaxed text-[#3c4043] space-y-2">
+            <div class="font-bold text-[#b06000] uppercase tracking-wider mb-1 flex items-center justify-between gap-1.5 flex-wrap">
+              <span class="flex items-center gap-1.5">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <span id="ovRegionAdvisoryTitle">Regional Capacity &amp; Verified GCE Zone Matrix</span>
+              </span>
+              <span id="ovRegionSkuCountBadge" class="px-2 py-0.5 rounded bg-white text-[#202124] border border-amber-300 font-mono text-[11px]">All 6 Catalog SKUs</span>
+            </div>
+            <p id="ovRegionAdvisoryBody">
+              For global deployments, A4 (B200) and A3 Ultra (H200) deliver the highest single-node HBM capacity (1,440 GB and 1,128 GB/node) via CUD/DWS reservation.
+            </p>
+            <div id="ovRegionZonePills" class="flex flex-wrap gap-1.5 pt-1"></div>
+            <div id="ovRegionMismatchBox" class="hidden p-2.5 rounded-md bg-[#fce8e6] border border-[#fad2cf] text-[#c5221f] flex flex-wrap items-center justify-between gap-2">
+              <span id="ovRegionMismatchText" class="font-semibold">Selected GPU is not deployed in this region.</span>
+              <button type="button" id="btnOvSwitchAvailableGpu" class="px-2.5 py-1 rounded bg-white hover:bg-[#f8f9fa] text-[#1a73e8] border border-[#1a73e8] font-bold text-xs cursor-pointer transition">
+                Switch to Best Available in Region
+              </button>
+            </div>
+          </div>
+          <div class="p-4 rounded-lg bg-[#e8f0fe] border border-[#d2e3fc] text-xs leading-relaxed text-[#3c4043]">
+            <div class="font-bold text-[#1a73e8] uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+              <span>Cloud TPU7x (Ironwood) Device-Parity Reference (1 Device = 1 GPU)</span>
+            </div>
+            <p>
+              Each TPU7x chip contains <strong>2 dies (devices)</strong>, where 1 device = 1 TensorCore + <strong>96 GB HBM3e (7.37 TB/s BW/device)</strong>. A 4-chip TPU7x VM exposes <strong>8 devices (768 GB HBM/VM)</strong>, aligning 1:1 by device count with an 8-GPU VM.
+            </p>
+          </div>
+        </div>
+
+        <!-- Footnotes + Pricing Basis Switcher -->
+        <div class="pt-4 border-t border-[#dadce0] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-[#5f6368]">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="font-semibold text-[#3c4043]">Pricing Basis:</span>
+            <div class="inline-flex p-1 bg-[#f8f9fa] rounded-lg border border-[#dadce0] gap-1.5" role="group">
+              <button type="button" data-pricing="ondemand" id="pricingBasisBtn-ondemand" aria-pressed="false" class="gcp-segmented-btn px-3 py-1 rounded-md font-medium bg-white text-[#3c4043] border border-[#dadce0] hover:border-[#1a73e8] transition cursor-pointer">On-demand</button>
+              <button type="button" data-pricing="cud1y" id="pricingBasisBtn-cud1y" aria-pressed="false" class="gcp-segmented-btn px-3 py-1 rounded-md font-medium bg-white text-[#3c4043] border border-[#dadce0] hover:border-[#1a73e8] transition cursor-pointer">1-yr CUD</button>
+              <button type="button" data-pricing="cud3y" id="pricingBasisBtn-cud3y" aria-pressed="true" class="gcp-segmented-btn px-3 py-1 rounded-md font-bold bg-[#e8f0fe] text-[#174ea6] border border-[#1a73e8] shadow-xs transition cursor-pointer">3-yr CUD</button>
+            </div>
+            <span id="execPricingFootnote" class="font-mono">Google Cloud public reference rate (3-yr CUD)</span>
+          </div>
+          <button type="button" id="btnOverviewToCockpit" class="px-3.5 py-1.5 rounded-lg bg-[#e8f0fe] hover:bg-[#d2e3fc] text-[#174ea6] border border-[#1a73e8] font-bold text-xs transition cursor-pointer">
+            Customize in Engineering Cockpit &rarr;
+          </button>
+        </div>
+      </div>
+
+      <!-- VISUAL MULTI-PLATFORM TCO & FLEET COMPARISON BARS -->
+      <div class="bg-white border border-[#dadce0] rounded-lg p-6 shadow-xs space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#dadce0]">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-[#1a73e8]">Cross-Architecture Unit Economics</div>
+            <h3 class="text-lg font-bold text-[#202124] mt-0.5">Multi-Platform Fleet &amp; $/1M Token Comparison (Aligned by 8-Device Node)</h3>
+          </div>
+          <span class="text-xs font-mono text-[#5f6368]">B200 (A4) &bull; H200 (A3 Ultra) &bull; H100 (A3 Mega) &bull; RTX PRO 6000 (G4) &bull; TPU7x (8-Dev VM)</span>
+        </div>
+        <div id="ovPlatformBarsContainer" class="space-y-3">
+          <!-- Populated safely via DOM APIs in app.js -->
+        </div>
+      </div>
+
+      <!-- OFFICIAL GOOGLE INTERNAL PITCH DECKS & GO-LINKS HUB -->
+      <div class="bg-white border border-[#dadce0] rounded-lg p-6 shadow-xs space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#dadce0]">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-[#188038]">Internal GTM &amp; Technical Collateral Hub</div>
+            <h3 class="text-lg font-bold text-[#202124] mt-0.5">Official Google Cloud GPU, TPU &amp; AI Infra Pitch Decks (go/ Links)</h3>
+          </div>
+          <span class="text-xs font-mono text-[#5f6368]">Click any badge to open via goto.google.com</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div class="p-3.5 rounded-lg bg-[#f8f9fa] border border-[#dadce0] space-y-2">
+            <div class="font-bold text-[#1a73e8] uppercase tracking-wider">Blackwell A4 (B200) &amp; A4X (GB200)</div>
+            <div class="flex flex-wrap gap-1.5 font-mono">
+              <a href="https://goto.google.com/a4-pitchdeck" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#1a73e8] border border-[#d2e3fc] font-bold transition">go/a4-pitchdeck &nearr;</a>
+              <a href="https://goto.google.com/a4x-pitchdeck" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#1a73e8] border border-[#d2e3fc] font-bold transition">go/a4x-pitchdeck &nearr;</a>
+              <a href="https://goto.google.com/a4-price" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#3c4043] border border-[#dadce0] transition">go/a4-price &nearr;</a>
+              <a href="https://goto.google.com/b200-skus" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#3c4043] border border-[#dadce0] transition">go/b200-skus &nearr;</a>
+            </div>
+          </div>
+          <div class="p-3.5 rounded-lg bg-[#f8f9fa] border border-[#dadce0] space-y-2">
+            <div class="font-bold text-[#188038] uppercase tracking-wider">Blackwell G4 (RTX PRO 6000) &amp; L4</div>
+            <div class="flex flex-wrap gap-1.5 font-mono">
+              <a href="https://goto.google.com/g4-pitch-deck" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#1a73e8] border border-[#d2e3fc] font-bold transition">go/g4-pitch-deck &nearr;</a>
+              <a href="https://goto.google.com/g4-overview" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#1a73e8] border border-[#d2e3fc] font-bold transition">go/g4-overview &nearr;</a>
+              <a href="https://goto.google.com/g4-price" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#3c4043] border border-[#dadce0] transition">go/g4-price &nearr;</a>
+              <a href="https://goto.google.com/which-gpu" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#3c4043] border border-[#dadce0] transition">go/which-gpu &nearr;</a>
+            </div>
+          </div>
+          <div class="p-3.5 rounded-lg bg-[#f8f9fa] border border-[#dadce0] space-y-2">
+            <div class="font-bold text-[#b06000] uppercase tracking-wider">Hopper A3 Ultra (H200) &amp; A3 Mega (H100)</div>
+            <div class="flex flex-wrap gap-1.5 font-mono">
+              <a href="https://goto.google.com/a3ultra-preview-guide" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#1a73e8] border border-[#d2e3fc] font-bold transition">go/a3ultra-preview-guide &nearr;</a>
+              <a href="https://goto.google.com/a3mega-preview-guide" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#1a73e8] border border-[#d2e3fc] font-bold transition">go/a3mega-preview-guide &nearr;</a>
+              <a href="https://goto.google.com/a3-ultra-pricing-template" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#3c4043] border border-[#dadce0] transition">go/a3-ultra-pricing-template &nearr;</a>
+              <a href="https://goto.google.com/gpus-pricing" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#3c4043] border border-[#dadce0] transition">go/gpus-pricing &nearr;</a>
+            </div>
+          </div>
+          <div class="p-3.5 rounded-lg bg-[#f8f9fa] border border-[#dadce0] space-y-2">
+            <div class="font-bold text-[#1a73e8] uppercase tracking-wider">AI Infra, DWS, GKE &amp; Cloud TPU7x</div>
+            <div class="flex flex-wrap gap-1.5 font-mono">
+              <a href="https://goto.google.com/ai-infra-pitch" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#1a73e8] border border-[#d2e3fc] font-bold transition">go/ai-infra-pitch &nearr;</a>
+              <a href="https://goto.google.com/dws-pitch" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#1a73e8] border border-[#d2e3fc] font-bold transition">go/dws-pitch &nearr;</a>
+              <a href="https://goto.google.com/gke-ai-pitch" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#3c4043] border border-[#dadce0] transition">go/gke-ai-pitch &nearr;</a>
+              <a href="https://goto.google.com/cloudtpu-launchpad/ironwood/ironwood-overview" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded bg-white hover:bg-[#e8f0fe] text-[#188038] border border-emerald-200 font-bold transition">go/cloudtpu-launchpad &nearr;</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =======================================================================
+         VIEW 2: GPU RECOMMENDER (Mirrors & Elevates TpuRecommenderSection)
+         ======================================================================= -->
+    <div id="recommenderViewContainer" class="space-y-6 hidden">
+      <!-- RECOMMENDER HEADER -->
+      <div class="bg-white border border-[#dadce0] rounded-lg p-6 shadow-xs relative overflow-hidden">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h2 class="text-xl sm:text-2xl font-bold text-[#202124]">GPU Recommender</h2>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#e8f0fe] text-[#174ea6] border border-[#1a73e8]/30">
+                Guided Silicon Picker
+              </span>
+            </div>
+            <p class="text-sm text-[#5f6368] mt-1">
+              Answer <span id="recQuestionCountBadge" class="font-bold text-[#202124]">3</span> questions to choose the optimal Google Cloud GPU family (A4 B200, A3 Ultra H200, A3 Mega H100, G4 RTX PRO 6000, or G2 L4).
+            </p>
+          </div>
+
+          <div class="flex items-center flex-wrap gap-2">
+            <div class="inline-flex p-1 bg-[#f1f3f4] border border-[#dadce0] rounded-lg text-sm" role="group">
+              <button type="button" id="recModeBtnBusiness" class="px-3.5 py-1.5 rounded-md font-bold transition bg-white text-[#1a73e8] shadow-xs border border-[#dadce0]">
+                Quick Picker (Business)
+              </button>
+              <button type="button" id="recModeBtnTech" class="px-3.5 py-1.5 rounded-md font-semibold transition text-[#5f6368] hover:text-[#202124]">
+                Technical Deep-Dive
+              </button>
+            </div>
+            <button type="button" id="btnResetRecommender" class="px-3.5 py-1.5 rounded-lg bg-[#f1f3f4] hover:bg-[#e8eaed] text-[#3c4043] text-sm font-semibold border border-[#dadce0] transition">
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GUIDED INPUT CONTROLS & RESULTS GRID -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- LEFT COLUMN: GUIDED QUESTIONS (5 cols) -->
+        <div class="lg:col-span-5 space-y-4">
+          <!-- Question 1: Optimization Priority -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs">
+            <label class="block text-sm font-bold text-[#202124] uppercase tracking-wider mb-2.5">
+              1. Optimization Priority
+            </label>
+            <div class="text-[13px] font-semibold text-[#5f6368] mb-2">
+              What matters most for this deployment?
+            </div>
+            <div class="grid grid-cols-1 gap-2" id="recPrioGroup">
+              <button type="button" data-rec-prio="cost" class="rec-prio-btn p-2.5 rounded-lg border text-left transition flex items-center justify-between bg-[#e8f0fe] border-[#1a73e8] text-[#202124] font-semibold text-sm">
+                <div>
+                  <div class="font-bold">Lowest Cost &amp; Best Unit Economics ($/1M tok)</div>
+                  <div class="text-xs text-[#5f6368] font-normal mt-0.5">Maximize tokens per dollar across B200, G4 96GB, and H200 CUDs</div>
+                </div>
+                <span class="text-[#1a73e8] text-sm font-bold">&check;</span>
+              </button>
+              <button type="button" data-rec-prio="latency" class="rec-prio-btn p-2.5 rounded-lg border text-left transition flex items-center justify-between bg-white border-[#dadce0] text-[#3c4043] hover:border-[#1a73e8] text-sm">
+                <div>
+                  <div class="font-bold">Strict Low Latency (TTFT &lt; 500ms / TPOT &lt; 25ms)</div>
+                  <div class="text-xs text-[#5f6368] font-normal mt-0.5">8.0 TB/s HBM3e bandwidth &amp; NVLink 5 for interactive agents</div>
+                </div>
+                <span class="text-[#1a73e8] text-sm font-bold hidden">&check;</span>
+              </button>
+              <button type="button" data-rec-prio="throughput" class="rec-prio-btn p-2.5 rounded-lg border text-left transition flex items-center justify-between bg-white border-[#dadce0] text-[#3c4043] hover:border-[#1a73e8] text-sm">
+                <div>
+                  <div class="font-bold">Maximum Compute Throughput &amp; Single-Node HBM</div>
+                  <div class="text-xs text-[#5f6368] font-normal mt-0.5">1,440 GB HBM3e/node (B200) or 1,128 GB/node (H200)</div>
+                </div>
+                <span class="text-[#1a73e8] text-sm font-bold hidden">&check;</span>
+              </button>
+              <button type="button" data-rec-prio="availability" class="rec-prio-btn p-2.5 rounded-lg border text-left transition flex items-center justify-between bg-white border-[#dadce0] text-[#3c4043] hover:border-[#1a73e8] text-sm">
+                <div>
+                  <div class="font-bold">Immediate Regional Capacity (APAC / Strict Residency)</div>
+                  <div class="text-xs text-[#5f6368] font-normal mt-0.5">Prioritize SKUs with immediate on-demand / CUD stock in region</div>
+                </div>
+                <span class="text-[#1a73e8] text-sm font-bold hidden">&check;</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Question 2: Model Scale & Context Tiebreaker -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs">
+            <label class="block text-sm font-bold text-[#202124] uppercase tracking-wider mb-2.5">
+              2. How Big Is the Model?
+            </label>
+            <div class="grid grid-cols-2 gap-2 mb-3" id="recScaleGroup">
+              <button type="button" data-rec-scale="<14b" class="rec-scale-btn p-2.5 rounded-lg border text-left transition bg-white border-[#dadce0] text-[#3c4043] hover:border-[#1a73e8] text-sm">
+                <div class="font-bold">Under 14B</div>
+                <div class="text-xs text-[#5f6368] font-normal mt-0.5">Llama 3.1 8B, Qwen 7B</div>
+              </button>
+              <button type="button" data-rec-scale="14b-32b" class="rec-scale-btn p-2.5 rounded-lg border text-left transition bg-white border-[#dadce0] text-[#3c4043] hover:border-[#1a73e8] text-sm">
+                <div class="font-bold">14B to 32B</div>
+                <div class="text-xs text-[#5f6368] font-normal mt-0.5">Gemma-3 27B, Qwen 32B</div>
+              </button>
+              <button type="button" data-rec-scale="32b-120b" class="rec-scale-btn p-2.5 rounded-lg border text-left transition bg-[#e8f0fe] border-[#1a73e8] text-[#202124] font-semibold text-sm">
+                <div class="font-bold">32B to 120B</div>
+                <div class="text-xs text-[#5f6368] font-normal mt-0.5">Llama 3.3 70B, Qwen 72B</div>
+              </button>
+              <button type="button" data-rec-scale=">200b" class="rec-scale-btn p-2.5 rounded-lg border text-left transition bg-white border-[#dadce0] text-[#3c4043] hover:border-[#1a73e8] text-sm">
+                <div class="font-bold">200B+ Frontier</div>
+                <div class="text-xs text-[#5f6368] font-normal mt-0.5">Qwen 397B, DeepSeek 671B</div>
+              </button>
+            </div>
+
+            <!-- Long-Context Tiebreaker -->
+            <div class="pt-2.5 border-t border-[#dadce0]">
+              <button type="button" id="recBtnCtxTiebreaker" aria-pressed="false" class="w-full p-2.5 rounded-lg border border-[#dadce0] bg-[#f8f9fa] hover:bg-[#e8eaed] text-left transition flex items-center justify-between text-sm text-[#3c4043]">
+                <div>
+                  <div class="font-bold">Long-Context Tiebreaker (&ge; 128K tokens)</div>
+                  <div class="text-xs text-[#5f6368] font-normal mt-0.5">
+                    Tilts toward high-HBM GPUs (B200 180 GB / H200 141 GB) over 80 GB / 24 GB GPUs
+                  </div>
+                </div>
+                <span id="recBadgeCtxTiebreaker" class="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-white text-[#5f6368] border border-[#dadce0]">Off (8K)</span>
+              </button>
+            </div>
+
+            <!-- Target GCP Region Filter (Always Visible & Verified per Region) -->
+            <div class="pt-3 mt-3 border-t border-[#dadce0] space-y-1.5">
+              <div class="flex items-center justify-between gap-2">
+                <label for="recSelectRegion" class="text-[13px] font-bold text-[#202124]">Target GCP Region:</label>
+                <span id="recRegionVerifyBadge" class="text-[11px] font-mono text-[#188038] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Verified Live GCE Zones</span>
+              </div>
+              <select id="recSelectRegion" class="w-full bg-white border border-[#dadce0] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#202124]">
+                <option value="global">Global / All Regions (Unconstrained)</option>
+              </select>
+              <div id="recRegionGpuListHint" class="text-[11px] font-mono text-[#5f6368]">Available SKUs: B200, H200, H100, G4, L4, TPU7x</div>
+            </div>
+
+            <!-- Tech Mode Only: Serving Runtime -->
+            <div id="recTechOnlyBox" class="pt-3 mt-3 border-t border-[#dadce0] space-y-2.5 hidden">
+              <div class="flex items-center justify-between">
+                <span class="text-[13px] font-semibold text-[#5f6368]">Serving Runtime:</span>
+                <select id="recSelectRuntime" class="bg-white border border-[#dadce0] rounded px-2.5 py-1 text-xs font-semibold text-[#202124]">
+                  <option value="vllm">vLLM / llm-d Disaggregated</option>
+                  <option value="trtllm">TensorRT-LLM / NVIDIA Dynamo</option>
+                  <option value="sglang">SGLang / RadixAttention</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Question 3: Workload Nature -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs">
+            <label class="block text-sm font-bold text-[#202124] uppercase tracking-wider mb-2.5">
+              3. What Are You Doing With It?
+            </label>
+            <div class="grid grid-cols-1 gap-2" id="recWorkloadGroup">
+              <button type="button" data-rec-wk="inference_online" class="rec-wk-btn p-3 rounded-lg border text-left transition flex items-center justify-between bg-[#e8f0fe] border-[#1a73e8] text-[#202124] font-semibold">
+                <div>
+                  <div class="text-sm font-bold text-[#202124]">Chatbot, Agentic AI, or Real-Time Serving</div>
+                  <div class="text-xs text-[#5f6368] font-normal mt-0.5">Interactive low-latency responses, continuous batching or llm-d</div>
+                </div>
+                <span class="text-[#1a73e8] text-sm font-bold">&check;</span>
+              </button>
+              <button type="button" data-rec-wk="inference_batch" class="rec-wk-btn p-3 rounded-lg border text-left transition flex items-center justify-between bg-white border-[#dadce0] text-[#3c4043] hover:border-[#1a73e8]">
+                <div>
+                  <div class="text-sm font-bold text-[#202124]">Overnight Batch Jobs, Extraction &amp; Embeddings</div>
+                  <div class="text-xs text-[#5f6368] font-normal mt-0.5">Offline pipelines &mdash; maximize tokens per dollar on G4 96GB or B200</div>
+                </div>
+                <span class="text-[#1a73e8] text-sm font-bold hidden">&check;</span>
+              </button>
+              <button type="button" data-rec-wk="posttrain" class="rec-wk-btn p-3 rounded-lg border text-left transition flex items-center justify-between bg-white border-[#dadce0] text-[#3c4043] hover:border-[#1a73e8]">
+                <div>
+                  <div class="text-sm font-bold text-[#202124]">Fine-Tuning &amp; Post-Training (SFT, LoRA, RLHF)</div>
+                  <div class="text-xs text-[#5f6368] font-normal mt-0.5">Single-node or multi-node FSDP / DeepSpeed on H200 or B200</div>
+                </div>
+                <span class="text-[#1a73e8] text-sm font-bold hidden">&check;</span>
+              </button>
+              <button type="button" data-rec-wk="pretrain" class="rec-wk-btn p-3 rounded-lg border text-left transition flex items-center justify-between bg-white border-[#dadce0] text-[#3c4043] hover:border-[#1a73e8]">
+                <div>
+                  <div class="text-sm font-bold text-[#202124]">Training a Foundation Model from Scratch</div>
+                  <div class="text-xs text-[#5f6368] font-normal mt-0.5">Multi-trillion tokens on A4 (B200) or A3 Ultra (H200) RoCEv2 clusters</div>
+                </div>
+                <span class="text-[#1a73e8] text-sm font-bold hidden">&check;</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: LIVE RECOMMENDATION RESULTS (7 cols) -->
+        <div class="lg:col-span-7 space-y-4">
+          <!-- Primary Recommended GPU Card -->
+          <div class="bg-white border border-[#dadce0] border-l-4 border-l-[#1a73e8] rounded-lg p-6 shadow-xs relative overflow-hidden">
+            <div class="pb-3.5 mb-3.5 border-b border-[#dadce0] flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <div class="text-[13px] font-bold uppercase tracking-wider text-[#1a73e8]" id="recPrimaryBadge">Primary Recommendation</div>
+                <h3 class="text-xl sm:text-2xl font-black text-[#202124] mt-0.5" id="recPrimaryTitle">NVIDIA B200 (a4-highgpu-8g)</h3>
+              </div>
+              <span class="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-emerald-50 text-[#188038] border border-emerald-200" id="recPrimaryAvailTag">180 GB HBM3e / GPU &bull; 8.0 TB/s</span>
+            </div>
+
+            <!-- "In Plain Words" Executive Callout -->
+            <div id="recPrimaryPlainWords" class="mb-4 p-3.5 rounded-lg bg-[#f8f9fa] border border-[#dadce0] text-sm text-[#202124] leading-relaxed">
+              <strong>In plain words:</strong> Google Cloud's flagship Blackwell GPU machine with 180 GB HBM3e per GPU (1,440 GB per 8-GPU node) and 8.0 TB/s memory bandwidth. Delivers 2.5&ndash;3x higher decode throughput than Hopper on 70B&ndash;671B models.
+            </div>
+
+            <!-- 3-KPI Sizing Strip -->
+            <div class="mb-4 p-3.5 rounded-lg bg-[#f8f9fa] border border-[#dadce0] space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center gap-1.5 text-xs text-[#5f6368]">
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-50 text-[#188038] border border-emerald-200" id="recSizingTypeBadge">Reference Sizing</span>
+                  <span id="recSizingSourceText" class="text-[13px] text-[#3c4043] font-medium">70B Dense FP8 &middot; 6.0M tok/min (100k tok/s)</span>
+                </div>
+                <button type="button" id="btnRecToCockpit" class="px-3 py-1 rounded-md bg-[#e8f0fe] hover:bg-[#d2e3fc] text-[#174ea6] border border-[#1a73e8] font-bold text-xs transition cursor-pointer">
+                  Load into Engineering Cockpit &rarr;
+                </button>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="bg-white border border-[#dadce0] rounded-lg p-3.5">
+                  <div class="text-xs text-[#5f6368] font-semibold" id="recKpi1Label">Recommended Pool</div>
+                  <div class="text-xl font-bold text-[#202124] mt-1 font-mono" id="recPrimaryPool">48 GPUs (6 Nodes)</div>
+                  <div class="text-xs text-[#5f6368] mt-1" id="recPrimaryPoolSub">TP=1 or TP=2 &bull; 8 GPUs/node</div>
+                </div>
+                <div class="bg-white border border-[#dadce0] rounded-lg p-3.5">
+                  <div class="text-xs text-[#5f6368] font-semibold" id="recKpi2Label">Est. Monthly Spend</div>
+                  <div class="text-xl font-bold text-[#202124] mt-1 font-mono" id="recPrimaryMonthly">$298.2K / mo</div>
+                  <div class="text-xs text-[#5f6368] mt-1" id="recPrimaryMonthlySub">3-yr CUD ($8.506/GPU-hr)</div>
+                </div>
+                <div class="bg-white border border-[#dadce0] rounded-lg p-3.5">
+                  <div class="text-xs text-[#5f6368] font-semibold" id="recKpi3Label">Cost per 1M Tokens</div>
+                  <div class="text-xl font-bold text-[#1a73e8] mt-1 font-mono" id="recPrimaryUnit">$1.15 / 1M</div>
+                  <div class="text-xs text-[#5f6368] mt-1" id="recPrimaryUnitSub">At 259.2B tokens/month</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Multi-Candidate Match Scoreboard -->
+            <div class="mb-4 p-3.5 rounded-lg bg-[#f8f9fa] border border-[#dadce0] space-y-2.5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold uppercase tracking-wider text-[#202124]">Live GPU Candidate Ranking (Multi-Factor Match Score)</span>
+                <span class="font-mono text-[#5f6368]" id="recActiveCriteriaBadge">Priority: Cost &bull; Scale: 32B&ndash;120B</span>
+              </div>
+              <div id="recScoreboardBox" class="space-y-1.5">
+                <!-- Populated safely in app.js -->
+              </div>
+            </div>
+
+            <!-- Collapsible Silicon Architecture Specs -->
+            <details class="mb-4 bg-[#f8f9fa] border border-[#dadce0] rounded-lg text-sm overflow-hidden group" open>
+              <summary class="p-3 px-4 cursor-pointer font-bold text-[#3c4043] flex items-center justify-between hover:bg-[#e8eaed] transition select-none">
+                <span class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-[#8ab4f8] border border-[#1a73e8]"></span>
+                  <span>Hardware Architecture Specs (TFLOPs, HBM Memory, Interconnect)</span>
+                </span>
+                <span class="text-[#1a73e8] text-xs font-semibold">Toggle Specs</span>
+              </summary>
+              <div class="p-3.5 border-t border-[#dadce0] bg-white font-mono text-[13px] text-[#3c4043] grid grid-cols-2 sm:grid-cols-3 gap-2.5" id="recPrimarySpecs">
+                <!-- Populated safely in app.js -->
+              </div>
+            </details>
+
+            <!-- Official Pitch Deck & Pricing Go-Links for Recommended GPU -->
+            <div class="mb-4 p-3 rounded-lg bg-[#f8f9fa] border border-[#dadce0] flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span class="font-bold text-[#3c4043] uppercase tracking-wider">Official Pitch Decks &amp; Go-Links:</span>
+              <div id="recPrimaryDecksBox" class="flex flex-wrap items-center gap-1.5 font-mono">
+                <!-- Populated safely in app.js -->
+              </div>
+            </div>
+
+            <!-- Why This GPU Fits Your Answers -->
+            <div class="space-y-2.5">
+              <div class="text-sm font-bold text-[#202124] uppercase tracking-wider">Why This GPU Fits Your Answers:</div>
+              <ul class="space-y-2 text-sm text-[#3c4043]" id="recPrimaryRationales">
+                <!-- Populated safely in app.js -->
+              </ul>
+            </div>
+          </div>
+
+          <!-- Alternative GPU & TPU7x Device-Parity Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs">
+              <div class="pb-2.5 mb-2.5 border-b border-[#dadce0]">
+                <div class="text-xs font-bold uppercase tracking-wider text-[#b06000]">Runner-Up GPU Alternative</div>
+                <h4 class="text-base font-bold text-[#202124] mt-0.5" id="recAltTitle">NVIDIA RTX PRO 6000 Blackwell (G4, 96 GB/GPU)</h4>
+              </div>
+              <p class="text-sm text-[#3c4043] leading-relaxed" id="recAltDesc">
+                <strong>Choose it when:</strong> You want the lowest $/GPU-hr ($1.33/hr 3Y CUD) with 96 GB GDDR7 per GPU (fitting 70B FP8 on 1 GPU or TP=2) and broad regional PCIe availability.
+              </p>
+            </div>
+
+            <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs">
+              <div class="pb-2.5 mb-2.5 border-b border-[#dadce0]">
+                <div class="text-xs font-bold uppercase tracking-wider text-[#1a73e8]">Cloud TPU7x Device-Parity Option</div>
+                <h4 class="text-base font-bold text-[#202124] mt-0.5">Cloud TPU7x (96 GB HBM3e / Device)</h4>
+              </div>
+              <p class="text-sm text-[#3c4043] leading-relaxed">
+                <strong>Device-for-device parity:</strong> Each TPU7x chip has 2 dies (devices), each with 1 TensorCore + 96 GB HBM3e (7.37 TB/s BW). A 4-chip TPU7x VM = 8 devices (768 GB HBM), matching an 8-GPU VM 1:1 by device count.
+              </p>
+            </div>
+          </div>
+
+          <!-- GPU Generation Cheat Card & PoC Checklist -->
+          <details class="bg-white border border-[#dadce0] rounded-lg shadow-xs text-sm overflow-hidden group" open>
+            <summary class="p-4 cursor-pointer font-bold text-[#202124] flex items-center justify-between hover:bg-[#f8f9fa] transition select-none">
+              <span class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded bg-emerald-50 text-[#188038] border border-emerald-200 text-xs font-bold">Reference</span>
+                <span>Google Cloud GPU &amp; TPU7x Generation Cheat Card (Per-Device &amp; Per-Node)</span>
+              </span>
+              <span class="text-[#1a73e8] text-xs font-semibold">Toggle Matrix</span>
+            </summary>
+            <div class="p-4 pt-0 border-t border-[#dadce0]">
+              <div class="overflow-x-auto mt-3">
+                <table class="w-full text-left border-collapse text-[13px] font-mono">
+                  <thead>
+                    <tr class="border-b border-[#dadce0] text-[#5f6368] uppercase text-xs tracking-wider">
+                      <th class="py-2 pr-3 font-sans">Platform / VM</th>
+                      <th class="py-2 px-2">Region Zones</th>
+                      <th class="py-2 px-2 text-right">Mem / Dev</th>
+                      <th class="py-2 px-2 text-right">Mem / Node</th>
+                      <th class="py-2 px-2 text-right">BW / Dev</th>
+                      <th class="py-2 px-2 text-right">FP8 / Dev</th>
+                      <th class="py-2 px-2 text-right">3Y CUD</th>
+                      <th class="py-2 pl-2 text-right">Pitch Deck</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-[#dadce0]/60 text-[#3c4043]" id="recCatalogTableBody">
+                    <!-- Populated safely in app.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <!-- =======================================================================
+         VIEW 3: ENGINEERING COCKPIT (Inference Serving + Model Training)
+         ======================================================================= -->
+    <div id="cockpitViewContainer" class="space-y-6 hidden">
+      <!-- DOMAIN SWITCHER & WORKLOAD PRESETS BAR -->
+      <div class="rounded-lg border border-[#dadce0] overflow-hidden bg-white shadow-xs">
+        <section class="border-b border-[#dadce0] bg-[#f8f9fa] px-4 lg:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="inline-flex p-1 bg-[#f1f3f4] border border-[#dadce0] rounded-lg gap-1">
+            <button type="button" id="modeBtnInference" class="flex items-center space-x-2 px-4 py-1.5 rounded-lg text-sm font-bold transition bg-[#e8f0fe] text-[#202124] shadow-xs border border-[#1a73e8]">
+              <svg class="w-4 h-4 text-[#1a73e8]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+              <span>Inference Serving Sizing</span>
+              <span class="text-xs px-1.5 py-0.5 rounded bg-white/80 text-[#202124] border border-[#d2e3fc] font-mono">Roofline + Empirical</span>
+            </button>
+            <button type="button" id="modeBtnTraining" class="flex items-center space-x-2 px-4 py-1.5 rounded-lg text-sm font-bold transition bg-white text-[#5f6368] hover:text-[#202124] border border-[#dadce0] hover:border-[#1a73e8]">
+              <svg class="w-4 h-4 text-[#1a73e8]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              <span>Model Training Sizing</span>
+              <span class="text-xs opacity-80 font-mono hidden md:inline">(Pre-Train &amp; Post-Train)</span>
+            </button>
+          </div>
+          <div class="text-xs font-mono text-[#5f6368]">
+            8-GPU VM Node Alignment &bull; Disaggregated llm-d &amp; Continuous Batching
+          </div>
+        </section>
+
+        <!-- WORKLOAD PRESETS BAR -->
+        <section class="px-4 lg:px-6 py-2.5 bg-white flex flex-wrap items-center gap-2">
+          <span class="uppercase tracking-wider text-xs font-bold text-[#5f6368] flex items-center gap-1.5 mr-1">
+            <span class="w-2 h-2 rounded-full bg-[#8ab4f8] border border-[#1a73e8]"></span>
+            <span>Workload Presets:</span>
+          </span>
+          <div class="flex flex-wrap items-center gap-1.5" id="cockpitPresetButtons">
+            <button type="button" data-preset="llama70b_3k" class="preset-btn px-3 py-1 rounded-md text-xs font-bold border border-[#1a73e8] bg-[#e8f0fe] text-[#202124] transition">
+              Llama-3.3 70B FP8 (6M tok/min &bull; Tuned 3k tok/s)
+            </button>
+            <button type="button" data-preset="llama70b_1k" class="preset-btn px-3 py-1 rounded-md text-xs font-medium border border-[#dadce0] bg-white text-[#3c4043] hover:border-[#1a73e8] transition">
+              Llama-3.3 70B FP8 (6M tok/min &bull; Conservative 1k tok/s)
+            </button>
+            <button type="button" data-preset="llama70b_roofline" class="preset-btn px-3 py-1 rounded-md text-xs font-medium border border-[#dadce0] bg-white text-[#3c4043] hover:border-[#1a73e8] transition">
+              Llama-3.3 70B FP8 (Roofline Physics Mode)
+            </button>
+            <button type="button" data-preset="qwen397b_moe" class="preset-btn px-3 py-1 rounded-md text-xs font-medium border border-[#dadce0] bg-white text-[#3c4043] hover:border-[#1a73e8] transition">
+              Qwen3.5-397B-A17B MoE (Disaggregated llm-d)
+            </button>
+            <button type="button" data-preset="deepseek671b" class="preset-btn px-3 py-1 rounded-md text-xs font-medium border border-[#dadce0] bg-white text-[#3c4043] hover:border-[#1a73e8] transition">
+              DeepSeek-R1 671B-A37B MoE
+            </button>
+            <button type="button" data-preset="gemma27b_g4" class="preset-btn px-3 py-1 rounded-md text-xs font-medium border border-[#dadce0] bg-white text-[#3c4043] hover:border-[#1a73e8] transition">
+              Gemma-3 27B / 70B on G4 (96GB GDDR7)
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- =====================================================================
+           COCKPIT DOMAIN A: INFERENCE SERVING SIZING (12-Col Grid)
+           ===================================================================== -->
+      <div id="inferenceViewContainer" class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+        <!-- LEFT COLUMN: INFERENCE INPUT CONTROLS (5 cols) -->
+        <div class="lg:col-span-5 space-y-5">
+          <!-- CARD 1: GPU ARCHITECTURE, MODEL & PRECISION -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-[#dadce0]">
+              <div class="flex items-center space-x-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#8ab4f8] border border-[#1a73e8]"></span>
+                <h2 class="text-base font-bold tracking-wide uppercase text-[#202124]">1. Region, Accelerator &amp; Model</h2>
+              </div>
+            </div>
+
+            <!-- Target GCP Region Selector in Cockpit -->
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label for="infRegionSelect" class="block text-sm font-semibold text-[#3c4043]">Target GCP Deployment Region</label>
+                <span id="infGpuRegionStatusBadge" class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-[#188038] border border-emerald-200">✓ Live in Region</span>
+              </div>
+              <select id="infRegionSelect" class="w-full bg-[#f8f9fa] border border-[#dadce0] rounded-lg px-3 py-2 text-xs font-semibold text-[#202124]">
+                <option value="us-central1">us-central1 (Iowa)</option>
+              </select>
+            </div>
+
+            <!-- Primary GPU Family Selector -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label for="infGpuSelect" class="block text-sm font-semibold text-[#3c4043]">Primary Google Cloud GPU Family</label>
+                <a id="infGpuPitchDeckLink" href="https://goto.google.com/a4-pitchdeck" target="_blank" rel="noopener noreferrer" class="text-xs font-mono font-bold text-[#1a73e8] hover:underline">go/a4-pitchdeck &nearr;</a>
+              </div>
+              <select id="infGpuSelect" class="w-full bg-[#f8f9fa] border border-[#dadce0] rounded-lg px-3 py-2 text-sm font-semibold text-[#202124]">
+                <option value="b200" selected>a4-highgpu-8g &mdash; NVIDIA B200 (180 GB HBM3e/GPU, 8.0 TB/s)</option>
+                <option value="h200">a3-ultragpu-8g &mdash; NVIDIA H200 (141 GB HBM3e/GPU, 4.8 TB/s)</option>
+                <option value="h100">a3-megagpu-8g &mdash; NVIDIA H100 (80 GB HBM3/GPU, 3.35 TB/s)</option>
+                <option value="g4">g4-standard &mdash; RTX PRO 6000 Blackwell (96 GB GDDR7/GPU, 1.5 TB/s)</option>
+                <option value="l4">g2-standard &mdash; NVIDIA L4 (24 GB GDDR6/GPU, 0.30 TB/s)</option>
+              </select>
+            </div>
+
+            <!-- Model Architecture (Dense vs MoE) -->
+            <div>
+              <label class="block text-sm font-semibold text-[#3c4043] mb-1.5">Model Architecture</label>
+              <div class="grid grid-cols-2 gap-2.5 bg-[#f8f9fa] p-1.5 rounded-lg border border-[#dadce0]">
+                <button type="button" id="btnInfDense" class="py-2 px-3 rounded-lg text-sm font-bold transition flex flex-col items-center justify-center bg-[#e8f0fe] text-[#202124] border border-[#1a73e8] shadow-xs">
+                  <span>Dense Transformer</span>
+                  <span class="text-xs font-normal opacity-80 font-mono">e.g. Llama-3.3 70B</span>
+                </button>
+                <button type="button" id="btnInfMoe" class="py-2 px-3 rounded-lg text-sm font-bold transition flex flex-col items-center justify-center bg-white text-[#5f6368] border border-[#dadce0] hover:text-[#202124] hover:border-[#1a73e8]">
+                  <span>Mixture-of-Experts (MoE)</span>
+                  <span class="text-xs font-normal opacity-80 font-mono">e.g. Qwen 397B / DeepSeek</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Parameters Sliders -->
+            <div class="space-y-3">
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label for="infSliderTotalParams" class="text-[13px] font-semibold text-[#3c4043]">Total Parameters (P_total)</label>
+                  <span class="text-sm font-mono font-bold text-[#1a73e8]" id="infTotalParamsDisplay">70 Billion</span>
+                </div>
+                <input type="range" id="infSliderTotalParams" min="7" max="700" step="1" value="70" class="w-full" />
+              </div>
+
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label for="infSliderActiveParams" class="text-[13px] font-semibold text-[#3c4043]">Active Parameters per Token (P_active)</label>
+                  <span class="text-sm font-mono font-bold text-[#1a73e8]" id="infActiveParamsDisplay">70 Billion</span>
+                </div>
+                <input type="range" id="infSliderActiveParams" min="1" max="405" step="1" value="70" class="w-full" />
+                <p class="text-xs text-[#5f6368] mt-1">Governs prefill FLOPs (2 &times; P_active FLOPs/tok) &amp; active weight streaming</p>
+              </div>
+
+              <!-- Serving Quantization / Precision -->
+              <div>
+                <label class="block text-sm font-semibold text-[#3c4043] mb-1.5">Serving Quantization / Precision</label>
+                <div class="grid grid-cols-2 gap-2 bg-[#f8f9fa] p-1.5 rounded-lg border border-[#dadce0]">
+                  <button type="button" id="btnInfPrecFp8" class="py-2 rounded-lg text-sm font-bold transition flex flex-col items-center justify-center bg-[#e8f0fe] text-[#202124] border border-[#1a73e8] shadow-xs">
+                    <span>FP8 (8-bit Quantized)</span>
+                    <span class="text-xs opacity-80 font-mono">1 byte/param (2x TensorCore)</span>
+                  </button>
+                  <button type="button" id="btnInfPrecBf16" class="py-2 rounded-lg text-sm font-bold transition flex flex-col items-center justify-center bg-white text-[#5f6368] border border-[#dadce0] hover:text-[#202124] hover:border-[#1a73e8]">
+                    <span>BF16 (16-bit Native)</span>
+                    <span class="text-xs opacity-80 font-mono">2 bytes/param</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 2: WORKLOAD TARGETS, TRAFFIC CONVERTER & SIZING MODE -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-[#dadce0]">
+              <div class="flex items-center space-x-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#8ab4f8] border border-[#1a73e8]"></span>
+                <h2 class="text-base font-bold tracking-wide uppercase text-[#202124]">2. Traffic Demand &amp; Sizing Mode</h2>
+              </div>
+              <span class="text-xs font-mono text-[#174ea6] bg-[#e8f0fe] px-2.5 py-0.5 rounded border border-[#1a73e8]/30 font-semibold" id="infSlaSummaryBadge">
+                100,000 tok/s (6.0M/min)
+              </span>
+            </div>
+
+            <!-- Bi-Directional Traffic / Peak QPS / Tokens-per-Min / Tok/s Converter -->
+            <div class="bg-[#f8f9fa] border border-[#dadce0] rounded-lg p-3.5 text-sm space-y-2.5">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <div class="font-bold text-[#202124] flex items-center gap-1.5 text-[13px]">
+                  <svg class="w-4 h-4 text-[#1a73e8]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  <span>Auto Traffic Converter (Peak QPS &harr; Tokens/Min &harr; Tok/s)</span>
+                </div>
+                <div class="inline-flex p-0.5 bg-white border border-[#dadce0] rounded text-[11px] font-mono">
+                  <button type="button" id="btnQpsBasisDecode" class="px-2 py-0.5 rounded bg-[#e8f0fe] text-[#174ea6] font-bold">QPS &times; O (Decode)</button>
+                  <button type="button" id="btnQpsBasisTotal" class="px-2 py-0.5 rounded text-[#5f6368] hover:text-[#202124]">QPS &times; (I+O)</button>
+                </div>
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                <div>
+                  <label for="inpPeakQps" class="block text-xs text-[#1a73e8] mb-0.5 font-bold">Peak QPS (req/s)</label>
+                  <input type="number" id="inpPeakQps" value="195.3" min="0.1" max="100000" step="1" class="w-full bg-white border border-[#1a73e8] rounded px-2 py-1.5 text-sm font-mono font-bold text-[#202124]" />
+                </div>
+                <div>
+                  <label for="inpTpmMillions" class="block text-xs text-[#5f6368] mb-0.5 font-semibold">Tokens / Min (M)</label>
+                  <input type="number" id="inpTpmMillions" value="6.0" min="0.06" max="600" step="0.5" class="w-full bg-white border border-[#dadce0] rounded px-2 py-1.5 text-sm font-mono text-[#202124]" />
+                </div>
+                <div>
+                  <label for="inpTargetTokSec" class="block text-xs text-[#5f6368] mb-0.5 font-semibold">Sizing Tok / Sec</label>
+                  <input type="number" id="inpTargetTokSec" value="100000" min="100" max="10000000" step="1000" class="w-full bg-white border border-[#dadce0] rounded px-2 py-1.5 text-sm font-mono text-[#202124]" />
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label for="infInputContextLen" class="block text-xs text-[#5f6368] mb-0.5 font-semibold">Avg Input Prompt (I)</label>
+                  <input type="number" id="infInputContextLen" value="2048" min="128" max="131072" step="256" class="w-full bg-white border border-[#dadce0] rounded px-2.5 py-1.5 text-sm font-mono text-[#202124]" />
+                </div>
+                <div>
+                  <label for="infInputOutputLen" class="block text-xs text-[#5f6368] mb-0.5 font-semibold">Avg Output Tokens (O)</label>
+                  <input type="number" id="infInputOutputLen" value="512" min="32" max="32768" step="64" class="w-full bg-white border border-[#dadce0] rounded px-2.5 py-1.5 text-sm font-mono text-[#202124]" />
+                </div>
+              </div>
+              <div id="qpsConversionSummary" class="pt-2 border-t border-[#dadce0] text-[11px] font-mono text-[#5f6368] flex flex-wrap items-center justify-between gap-1">
+                <span>Prefill In: 400,000 tok/s (24.0M/m)</span>
+                <span>&bull;</span>
+                <span>Decode Out: 100,000 tok/s (6.0M/m)</span>
+                <span>&bull;</span>
+                <span class="font-bold text-[#1a73e8]">Total: 500,000 tok/s</span>
+              </div>
+            </div>
+
+            <!-- Throughput Sizing Mode Switcher: Roofline Physics vs Empirical Target -->
+            <div>
+              <label class="block text-[13px] font-semibold text-[#3c4043] mb-1.5">Per-GPU Throughput Calculation Mode</label>
+              <div class="grid grid-cols-2 gap-2 bg-[#f8f9fa] p-1.5 rounded-lg border border-[#dadce0]">
+                <button type="button" id="btnMethodEmpirical" class="py-2 px-2.5 rounded-lg text-xs font-bold transition bg-[#e8f0fe] text-[#202124] border border-[#1a73e8] shadow-xs">
+                  Empirical Benchmark (tok/s/GPU)
+                </button>
+                <button type="button" id="btnMethodRoofline" class="py-2 px-2.5 rounded-lg text-xs font-bold transition bg-white text-[#5f6368] border border-[#dadce0] hover:text-[#202124] hover:border-[#1a73e8]">
+                  Roofline Physics (HBM BW &amp; Batch)
+                </button>
+              </div>
+            </div>
+
+            <!-- Sub-box A: Empirical Controls -->
+            <div id="empControlsBox" class="space-y-3 pt-1">
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label for="inpEmpiricalTps" class="text-[13px] font-semibold text-[#3c4043]">Raw Per-GPU Throughput</label>
+                  <span class="text-sm font-mono font-bold text-[#1a73e8]" id="lblEmpiricalTps">3,000 tok/s/GPU</span>
+                </div>
+                <input type="range" id="inpEmpiricalTps" min="250" max="6000" step="50" value="3000" class="w-full" />
+                <div class="grid grid-cols-3 gap-1.5 mt-2 font-mono text-xs">
+                  <button type="button" data-emp-tps="1000" class="emp-tps-btn py-1.5 rounded border border-[#dadce0] bg-white text-[#3c4043] hover:border-[#1a73e8]">1,000 (Baseline)</button>
+                  <button type="button" data-emp-tps="3000" class="emp-tps-btn py-1.5 rounded border border-[#1a73e8] bg-[#e8f0fe] text-[#202124] font-bold">3,000 (Tuned)</button>
+                  <button type="button" data-emp-tps="5000" class="emp-tps-btn py-1.5 rounded border border-[#dadce0] bg-white text-[#3c4043] hover:border-[#1a73e8]">5,000 (Peak)</button>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label for="inpUtilPct" class="text-[13px] font-semibold text-[#3c4043]">Production Utilization Headroom Factor</label>
+                  <span class="text-sm font-mono font-bold text-[#1a73e8]" id="lblUtilPct">80%</span>
+                </div>
+                <input type="range" id="inpUtilPct" min="50" max="100" step="5" value="80" class="w-full" />
+              </div>
+            </div>
+
+            <!-- Sub-box B: Roofline Batch Controls -->
+            <div id="rooflineControlsBox" class="space-y-3 pt-1 hidden">
+              <div>
+                <div class="flex justify-between items-center mb-1.5">
+                  <label class="text-[13px] font-semibold text-[#3c4043]">Continuous Batch Size (B per Replica)</label>
+                  <span class="text-xs font-mono text-[#1a73e8] font-bold" id="lblBatchSize">B = 96</span>
+                </div>
+                <div class="grid grid-cols-5 gap-1.5 font-mono text-xs text-center">
+                  <button type="button" data-batch="32" class="batch-btn py-1.5 rounded-lg border border-[#dadce0] bg-white text-[#5f6368] hover:border-[#1a73e8]">32</button>
+                  <button type="button" data-batch="64" class="batch-btn py-1.5 rounded-lg border border-[#dadce0] bg-white text-[#5f6368] hover:border-[#1a73e8]">64</button>
+                  <button type="button" data-batch="96" class="batch-btn py-1.5 rounded-lg border border-[#1a73e8] bg-[#e8f0fe] text-[#202124] font-bold">96</button>
+                  <button type="button" data-batch="128" class="batch-btn py-1.5 rounded-lg border border-[#dadce0] bg-white text-[#5f6368] hover:border-[#1a73e8]">128</button>
+                  <button type="button" data-batch="256" class="batch-btn py-1.5 rounded-lg border border-[#dadce0] bg-white text-[#5f6368] hover:border-[#1a73e8]">256</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 3: EFFICIENCY DERATINGS & PRICING OVERRIDE -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-[#dadce0]">
+              <div class="flex items-center space-x-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#8ab4f8] border border-[#1a73e8]"></span>
+                <h2 class="text-base font-bold tracking-wide uppercase text-[#202124]">3. Efficiency &amp; Rate Override</h2>
+              </div>
+              <span class="text-xs font-mono text-[#5f6368]">Roofline Derating Standard</span>
+            </div>
+
+            <div class="space-y-3">
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label for="infSliderPrefillMfu" class="text-[13px] font-semibold text-[#3c4043]">Prefill MFU Derating (Compute)</label>
+                  <span class="text-sm font-mono font-bold text-[#1a73e8]" id="infPrefillMfuDisplay">50%</span>
+                </div>
+                <input type="range" id="infSliderPrefillMfu" min="25" max="80" step="5" value="50" class="w-full" />
+              </div>
+
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label for="infSliderDecodeMbu" class="text-[13px] font-semibold text-[#3c4043]">Decode MBU Derating (HBM Bandwidth)</label>
+                  <span class="text-sm font-mono font-bold text-[#1a73e8]" id="infDecodeMbuDisplay">65%</span>
+                </div>
+                <input type="range" id="infSliderDecodeMbu" min="35" max="85" step="5" value="65" class="w-full" />
+              </div>
+
+              <div class="pt-2 border-t border-[#dadce0]">
+                <div class="flex justify-between items-center mb-1.5">
+                  <label for="inpCustomRate" class="text-[13px] font-semibold text-[#3c4043]">Effective GPU Hourly Rate ($/GPU-hr)</label>
+                  <input type="number" id="inpCustomRate" value="8.506" min="0.1" max="50" step="0.05" class="w-24 bg-[#f8f9fa] border border-[#dadce0] rounded px-2 py-1 text-sm font-mono font-bold text-[#1a73e8] text-right" />
+                </div>
+                <div class="flex flex-wrap gap-1.5 mt-1.5">
+                  <button type="button" data-rate="8.506" class="rate-pill-btn text-xs px-2 py-0.5 rounded bg-white hover:bg-[#f1f3f4] text-[#1a73e8] border border-[#d2e3fc] font-mono">B200 3Y ($8.51)</button>
+                  <button type="button" data-rate="4.86" class="rate-pill-btn text-xs px-2 py-0.5 rounded bg-white hover:bg-[#f1f3f4] text-[#5f6368] border border-[#dadce0] font-mono">H200 3Y ($4.86)</button>
+                  <button type="button" data-rate="4.41" class="rate-pill-btn text-xs px-2 py-0.5 rounded bg-white hover:bg-[#f1f3f4] text-[#5f6368] border border-[#dadce0] font-mono">H100 3Y ($4.41)</button>
+                  <button type="button" data-rate="1.33" class="rate-pill-btn text-xs px-2 py-0.5 rounded bg-white hover:bg-[#f1f3f4] text-[#5f6368] border border-[#dadce0] font-mono">G4 3Y ($1.33)</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: INFERENCE RESULTS & ARCHITECTURE BREAKDOWN (7 cols) -->
+        <div class="lg:col-span-7 space-y-6">
+          <!-- 4 TOP INFERENCE KPI CARDS -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4 shadow-xs flex flex-col justify-between">
+              <div class="text-xs font-bold uppercase tracking-wider text-[#5f6368]">Total Sized Cluster</div>
+              <div class="my-1.5">
+                <div id="infKpiTotalGpus" class="text-xl sm:text-2xl font-extrabold font-mono text-[#1a73e8] tracking-tight">48 GPUs</div>
+                <div id="infKpiTotalNodes" class="text-xs font-mono text-[#5f6368]">6 Nodes (8 GPUs/node)</div>
+              </div>
+              <div id="infKpiTotalCost" class="text-xs font-mono text-[#5f6368]">$298.2K / mo</div>
+            </div>
+
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4 shadow-xs flex flex-col justify-between">
+              <div class="text-xs font-bold uppercase tracking-wider text-[#5f6368]">Prefill Pool (Input)</div>
+              <div class="my-1.5">
+                <div id="infKpiPrefillGpus" class="text-xl sm:text-2xl font-extrabold font-mono text-[#202124] tracking-tight">16 GPUs</div>
+                <div id="infKpiPrefillNodes" class="text-xs font-mono text-[#5f6368]">2 Nodes &bull; Compute Bound</div>
+              </div>
+              <div id="infKpiPrefillSub" class="text-xs font-mono text-[#5f6368]">TTFT &le; 180 ms</div>
+            </div>
+
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4 shadow-xs flex flex-col justify-between">
+              <div class="text-xs font-bold uppercase tracking-wider text-[#5f6368]">Decode Pool (Output)</div>
+              <div class="my-1.5">
+                <div id="infKpiDecodeGpus" class="text-xl sm:text-2xl font-extrabold font-mono text-[#202124] tracking-tight">32 GPUs</div>
+                <div id="infKpiDecodeNodes" class="text-xs font-mono text-[#5f6368]">4 Nodes &bull; HBM BW Bound</div>
+              </div>
+              <div id="infKpiDecodeSub" class="text-xs font-mono text-[#5f6368]">2,400 eff. tok/s/GPU</div>
+            </div>
+
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4 shadow-xs flex flex-col justify-between">
+              <div class="text-xs font-bold uppercase tracking-wider text-[#5f6368]">Unit Economics</div>
+              <div class="my-1.5">
+                <div id="infKpiUnitCost" class="text-xl sm:text-2xl font-extrabold font-mono text-[#188038] tracking-tight">$1.15</div>
+                <div id="infKpiMonthlyTokens" class="text-xs font-mono text-[#5f6368]">Per 1M Tokens</div>
+              </div>
+              <div id="infKpiThroughputRate" class="text-xs font-mono text-[#5f6368]">259.2B tok/mo</div>
+            </div>
+          </div>
+
+          <!-- DISAGGREGATED SERVING ARCHITECTURE (llm-d) & MEMORY SHARDING -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-[#dadce0]">
+              <div class="flex items-center space-x-2.5">
+                <div class="px-2 py-0.5 rounded-md bg-[#e8f0fe] text-[#174ea6] font-mono font-bold text-xs border border-[#d2e3fc]">llm-d</div>
+                <h3 class="text-base font-bold text-[#202124] uppercase tracking-wider">Disaggregated Serving &amp; Replica HBM Envelope</h3>
+              </div>
+              <span class="text-xs font-mono text-[#5f6368]" id="infReplicaTpBadge">TP=1 &bull; 180 GB HBM3e / Replica</span>
+            </div>
+
+            <!-- Visual Replica HBM Allocation Bar -->
+            <div class="p-3.5 rounded-lg bg-[#f8f9fa] border border-[#dadce0] space-y-2">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-semibold text-[#3c4043]">Per-Replica HBM Allocation (Weights vs. KV Cache vs. Safety Reserve)</span>
+                <span class="font-mono font-bold text-[#1a73e8]" id="infHbmSummaryText">70.0 GB Weights / 180.0 GB Total</span>
+              </div>
+              <div class="w-full h-3.5 bg-white rounded-full overflow-hidden flex border border-[#dadce0]">
+                <div id="infBarWeights" class="bg-[#1a73e8] transition-all duration-300" style="width: 39%"></div>
+                <div id="infBarKv" class="bg-[#188038] transition-all duration-300" style="width: 46%"></div>
+                <div id="infBarReserve" class="bg-[#dadce0] transition-all duration-300" style="width: 15%"></div>
+              </div>
+              <div class="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-[#5f6368]">
+                <span id="infLegendWeights">Model Weights: 70.0 GB</span>
+                <span id="infLegendKv" class="text-[#188038] font-bold">Available KV Cache: 88.4 GB (~552K tokens)</span>
+                <span>Runtime Overhead: 12%</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Prefill Tier Card -->
+              <div class="bg-white border border-[#dadce0] rounded-lg p-4 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-bold font-mono text-[#1a73e8]">Prefill Pool (Input / TTFT)</span>
+                  <span class="text-xs px-2 py-0.5 rounded bg-[#e8f0fe] text-[#202124] font-mono border border-[#d2e3fc]">Compute-Bound (GEMM)</span>
+                </div>
+                <div class="space-y-1.5 text-[13px] font-mono bg-[#f8f9fa] p-3 rounded-lg border border-[#dadce0]">
+                  <div class="flex justify-between">
+                    <span class="text-[#5f6368]">Forward Compute / Tok:</span>
+                    <span id="infArchFlopsPerTok" class="font-bold text-[#202124]">140 GFLOPs/tok</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-[#5f6368]">Peak TensorCore Rate:</span>
+                    <span id="infArchPeakFlops" class="text-[#202124]">4,500 TFLOPs/GPU (FP8)</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-[#5f6368]">Sized Prefill Pool:</span>
+                    <span id="infArchPrefillPool" class="font-bold text-[#1a73e8]">16 GPUs (2 Nodes)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Decode Tier Card -->
+              <div class="bg-white border border-[#dadce0] rounded-lg p-4 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-bold font-mono text-[#1a73e8]">Decode Pool (Output / TPOT)</span>
+                  <span class="text-xs px-2 py-0.5 rounded bg-[#e8f0fe] text-[#202124] font-mono border border-[#d2e3fc]">HBM Bandwidth Bound</span>
+                </div>
+                <div class="space-y-1.5 text-[13px] font-mono bg-[#f8f9fa] p-3 rounded-lg border border-[#dadce0]">
+                  <div class="flex justify-between">
+                    <span class="text-[#5f6368]">HBM Bandwidth / GPU:</span>
+                    <span id="infArchHbmBw" class="font-bold text-[#202124]">8.00 TB/s @ 65% MBU</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-[#5f6368]">Effective Throughput:</span>
+                    <span id="infArchEffTps" class="text-[#202124]">2,400 tok/s/GPU</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-[#5f6368]">Sized Decode Pool:</span>
+                    <span id="infArchDecodePool" class="font-bold text-[#1a73e8]">32 GPUs (4 Nodes)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- GENERATIONAL PLATFORM COMPARISON TABLE (All GCP GPUs + TPU7x Device Parity) -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-3.5">
+            <div class="flex items-center justify-between pb-3 border-b border-[#dadce0]">
+              <div class="flex items-center space-x-2">
+                <span class="text-sm font-mono font-bold text-[#1a73e8]">&Delta;</span>
+                <h3 class="text-sm font-bold text-[#202124] uppercase tracking-wider">Cross-Platform Inference Sizing Comparison (Same Workload Demand)</h3>
+              </div>
+              <span class="text-xs font-mono text-[#5f6368]">8-Device VM Node Alignment</span>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-[13px] text-left font-mono">
+                <thead class="text-xs text-[#5f6368] uppercase bg-[#f8f9fa] border-b border-[#dadce0]">
+                  <tr>
+                    <th class="py-2.5 px-3 font-sans">Platform (Machine Type)</th>
+                    <th class="py-2.5 px-2 text-right">Min TP</th>
+                    <th class="py-2.5 px-2 text-right">Eff. tok/s/Dev</th>
+                    <th class="py-2.5 px-2 text-right">Sized Fleet</th>
+                    <th class="py-2.5 px-2 text-right">Mem / Dev (Node)</th>
+                    <th class="py-2.5 px-2 text-right">Monthly Spend</th>
+                    <th class="py-2.5 px-3 text-right">$ / 1M Tok</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-[#dadce0] text-[#202124]" id="cockpitCompTableBody">
+                  <!-- Populated safely in app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =====================================================================
+           COCKPIT DOMAIN B: MODEL TRAINING SIZING (12-Col Grid)
+           ===================================================================== -->
+      <div id="trainingViewContainer" class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 hidden">
+        <!-- LEFT COLUMN: TRAINING INPUT CONTROLS (5 cols) -->
+        <div class="lg:col-span-5 space-y-5">
+          <!-- CARD 1: ACCELERATOR SELECTOR -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-3.5">
+            <div class="flex items-center space-x-2.5 pb-3 border-b border-[#dadce0]">
+              <span class="w-2.5 h-2.5 rounded-full bg-[#8ab4f8] border border-[#1a73e8]"></span>
+              <h2 class="text-base font-bold tracking-wide uppercase text-[#202124]">1. Training GPU Architecture</h2>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 bg-[#f8f9fa] p-1.5 rounded-lg border border-[#dadce0]" id="trArchGroup">
+              <button type="button" data-tr-gpu="b200" class="tr-gpu-btn py-2 px-2 rounded-lg text-xs font-bold transition flex flex-col items-center justify-center bg-[#e8f0fe] text-[#202124] border border-[#1a73e8] shadow-xs">
+                <span>B200 (A4)</span>
+                <span class="text-[11px] font-normal opacity-80 font-mono">2,250 TF BF16</span>
+              </button>
+              <button type="button" data-tr-gpu="h200" class="tr-gpu-btn py-2 px-2 rounded-lg text-xs font-bold transition flex flex-col items-center justify-center bg-white text-[#5f6368] border border-[#dadce0] hover:border-[#1a73e8]">
+                <span>H200 (A3U)</span>
+                <span class="text-[11px] font-normal opacity-80 font-mono">989 TF BF16</span>
+              </button>
+              <button type="button" data-tr-gpu="h100" class="tr-gpu-btn py-2 px-2 rounded-lg text-xs font-bold transition flex flex-col items-center justify-center bg-white text-[#5f6368] border border-[#dadce0] hover:border-[#1a73e8]">
+                <span>H100 (A3M)</span>
+                <span class="text-[11px] font-normal opacity-80 font-mono">989 TF BF16</span>
+              </button>
+            </div>
+
+            <!-- Spec Quick Pills -->
+            <div class="grid grid-cols-3 gap-2 text-center font-mono">
+              <div class="bg-white border border-[#dadce0] rounded-lg p-2">
+                <div class="text-[11px] font-semibold text-[#5f6368] uppercase font-sans">Compute / GPU</div>
+                <div class="text-sm font-bold text-[#1a73e8] mt-0.5" id="trSpecCompute">2,250 TF</div>
+                <div class="text-[11px] text-[#80868b]" id="trSpecComputeSub">BF16 (4,500 FP8)</div>
+              </div>
+              <div class="bg-white border border-[#dadce0] rounded-lg p-2">
+                <div class="text-[11px] font-semibold text-[#5f6368] uppercase font-sans">Scale-Out Fabric</div>
+                <div class="text-sm font-bold text-[#1a73e8] mt-0.5" id="trSpecFabric">3.2 Tbps</div>
+                <div class="text-[11px] text-[#80868b]" id="trSpecFabricSub">8× 400G RoCEv2</div>
+              </div>
+              <div class="bg-white border border-[#dadce0] rounded-lg p-2">
+                <div class="text-[11px] font-semibold text-[#5f6368] uppercase font-sans">HBM / GPU</div>
+                <div class="text-sm font-bold text-[#1a73e8] mt-0.5" id="trSpecHbm">180 GB</div>
+                <div class="text-[11px] text-[#80868b]" id="trSpecHbmSub">1,440 GB / Node</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 2: MODEL & DATASET TOKENS -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-[#dadce0]">
+              <div class="flex items-center space-x-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#8ab4f8] border border-[#1a73e8]"></span>
+                <h2 class="text-base font-bold tracking-wide uppercase text-[#202124]">2. Model, Tokens &amp; Cluster Size</h2>
+              </div>
+              <span class="text-xs font-mono text-[#174ea6] bg-[#e8f0fe] px-2 py-0.5 rounded border border-[#1a73e8]/30">6ND Physics</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="trInputParamsB" class="block text-xs font-semibold text-[#3c4043] mb-1">Active Parameters (B)</label>
+                <input type="number" id="trInputParamsB" value="70" min="1" max="1000" step="1" class="w-full bg-[#f8f9fa] border border-[#dadce0] rounded-lg px-3 py-2 text-sm font-mono text-[#202124]" />
+              </div>
+              <div>
+                <label for="trInputTokensT" class="block text-xs font-semibold text-[#3c4043] mb-1">Training Dataset (Trillion Tok)</label>
+                <input type="number" id="trInputTokensT" value="2.0" min="0.01" max="100" step="0.1" class="w-full bg-[#f8f9fa] border border-[#dadce0] rounded-lg px-3 py-2 text-sm font-mono text-[#202124]" />
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="trSliderNodes" class="text-xs font-semibold text-[#3c4043]">Allocated 8-GPU Nodes</label>
+                <span id="trNodesBadge" class="text-sm font-mono font-bold text-[#1a73e8]">32 Nodes (256 GPUs)</span>
+              </div>
+              <input type="range" id="trSliderNodes" min="1" max="256" step="1" value="32" class="w-full" />
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="trSliderMfu" class="text-xs font-semibold text-[#3c4043]">Sustained Cluster MFU (%)</label>
+                <span id="trMfuBadge" class="text-sm font-mono font-bold text-[#1a73e8]">45%</span>
+              </div>
+              <input type="range" id="trSliderMfu" min="20" max="65" step="1" value="45" class="w-full" />
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: TRAINING METRICS, MEMORY SHARDING & CONFIG (7 cols) -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4 shadow-xs">
+              <div class="text-xs font-bold uppercase tracking-wider text-[#5f6368]">Cluster Allocation</div>
+              <div id="trKpiGpus" class="text-xl sm:text-2xl font-extrabold font-mono text-[#1a73e8] my-1.5">256 GPUs</div>
+              <div id="trKpiNodes" class="text-xs font-mono text-[#5f6368]">32 Nodes (8 GPUs/node)</div>
+            </div>
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4 shadow-xs">
+              <div class="text-xs font-bold uppercase tracking-wider text-[#5f6368]">Training Duration</div>
+              <div id="trKpiDays" class="text-xl sm:text-2xl font-extrabold font-mono text-[#202124] my-1.5">18.9 Days</div>
+              <div id="trKpiHours" class="text-xs font-mono text-[#188038]">454 Hours @ 45% MFU</div>
+            </div>
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4 shadow-xs">
+              <div class="text-xs font-bold uppercase tracking-wider text-[#5f6368]">Total Compute</div>
+              <div id="trKpiFlops" class="text-xl sm:text-2xl font-extrabold font-mono text-[#202124] my-1.5">0.84 ZFLOPs</div>
+              <div id="trKpiGpuDays" class="text-xs font-mono text-[#5f6368]">4,845 GPU-Days</div>
+            </div>
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4 shadow-xs">
+              <div class="text-xs font-bold uppercase tracking-wider text-[#5f6368]">Estimated Run Cost</div>
+              <div id="trKpiCost" class="text-xl sm:text-2xl font-extrabold font-mono text-[#188038] my-1.5">$989.1K</div>
+              <div id="trKpiRateSub" class="text-xs font-mono text-[#5f6368]">At 3-Yr CUD reference</div>
+            </div>
+          </div>
+
+          <!-- FSDP / ZeRO-3 Memory Footprint Breakdown -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-[#dadce0]">
+              <div>
+                <h3 class="text-sm font-bold text-[#202124] uppercase tracking-wider">Distributed Memory Allocation &amp; FSDP / ZeRO-3 Sharding</h3>
+                <p class="text-xs text-[#5f6368] mt-0.5">Master weights, FP32 AdamW optimizer states, gradients, and activation buffers across cluster HBM</p>
+              </div>
+              <span id="trMemPercentBadge" class="text-xs font-mono font-bold text-[#1a73e8] bg-[#e8f0fe] px-2.5 py-1 rounded border border-[#d2e3fc]">12.4% Cluster HBM Allocated</span>
+            </div>
+
+            <div class="w-full h-4 bg-[#f8f9fa] rounded-full overflow-hidden flex border border-[#dadce0]">
+              <div id="trBarWeights" class="bg-[#174ea6] transition-all duration-300" style="width: 4%"></div>
+              <div id="trBarOpt" class="bg-[#1a73e8] transition-all duration-300" style="width: 12%"></div>
+              <div id="trBarAct" class="bg-[#8ab4f8] transition-all duration-300" style="width: 8%"></div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
+              <div class="p-3 rounded-lg bg-[#f8f9fa] border border-[#dadce0]">
+                <div class="text-[#5f6368]">Total Cluster HBM</div>
+                <div id="trClusterHbmTotal" class="text-base font-bold text-[#202124] mt-0.5">46.08 TB</div>
+              </div>
+              <div class="p-3 rounded-lg bg-[#f8f9fa] border border-[#dadce0]">
+                <div class="text-[#5f6368]">ZeRO-3 State (Weights+Opt)</div>
+                <div id="trZeroStateTotal" class="text-base font-bold text-[#1a73e8] mt-0.5">1,120 GB</div>
+              </div>
+              <div class="p-3 rounded-lg bg-[#f8f9fa] border border-[#dadce0]">
+                <div class="text-[#5f6368]">Free HBM / GPU Headroom</div>
+                <div id="trFreeHbmPerGpu" class="text-base font-bold text-[#188038] mt-0.5">175.6 GB / GPU</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ready-to-Copy GKE / DWS Terraform Snippet -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-[#202124] uppercase tracking-wider">Production GKE NodePool &amp; DWS Provisioning Snippet</h3>
+                <p class="text-xs text-[#5f6368]">Auto-generated for selected GPU machine series and node count</p>
+              </div>
+              <button type="button" id="btnCopyTerraform" class="px-3 py-1 rounded bg-[#f1f3f4] hover:bg-[#e8eaed] text-[#1a73e8] border border-[#dadce0] text-xs font-mono font-bold transition">
+                Copy Terraform
+              </button>
+            </div>
+            <pre id="trTerraformPre" class="bg-[#f8f9fa] p-4 rounded-lg border border-[#dadce0] text-xs font-mono text-[#3c4043] overflow-x-auto custom-scrollbar"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- =========================================================================
+       MODAL 1: EXECUTIVE PITCH DECK & 4-PHASE RAMP ROADMAP PREVIEW
+       ========================================================================= -->
+  <div id="executivePitchDeckModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden">
+    <div class="bg-white border border-[#dadce0] rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-[#dadce0] bg-[#f8f9fa] flex items-center justify-between flex-wrap gap-3">
+        <div class="flex items-center space-x-3">
+          <div class="p-2 rounded-xl bg-[#e8f0fe] border border-[#d2e3fc] text-[#1a73e8]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+          </div>
+          <div>
+            <h2 class="text-base font-bold text-[#202124]">Executive Pitch Deck &amp; 4-Phase Adoption Roadmap</h2>
+            <p class="text-xs text-[#5f6368]">Customer-ready architecture summary &amp; DWS Flex &rarr; CUD ramp schedule</p>
+          </div>
+        </div>
+        <button type="button" id="btnCloseDeckModal" class="px-3 py-1.5 rounded-lg bg-[#f1f3f4] hover:bg-[#e8eaed] text-[#202124] text-xs font-semibold">
+          Close &times;
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto custom-scrollbar space-y-5 text-sm">
+        <div class="bg-[#f8f9fa] border border-[#dadce0] rounded-xl p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold uppercase text-[#1a73e8]">Slide 1 &bull; Executive Sizing Summary</span>
+            <span class="text-xs font-mono text-[#5f6368]" id="deckSlide1Meta">8-Device Node Aligned</span>
+          </div>
+          <h3 class="text-xl font-bold text-[#202124]" id="deckSlide1Title">Recommended Google Cloud GPU Architecture</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4">
+              <div class="text-xs text-[#5f6368]">Sized Cluster Footprint</div>
+              <div class="text-2xl font-bold text-[#1a73e8] font-mono mt-1" id="deckSlide1Fleet">48 GPUs (6 Nodes)</div>
+            </div>
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4">
+              <div class="text-xs text-[#5f6368]">Monthly CUD Commitment</div>
+              <div class="text-2xl font-bold text-[#202124] font-mono mt-1" id="deckSlide1Cost">$298.2K / mo</div>
+            </div>
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4">
+              <div class="text-xs text-[#5f6368]">Unit Economics</div>
+              <div class="text-2xl font-bold text-[#188038] font-mono mt-1" id="deckSlide1Unit">$1.15 / 1M tok</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-[#f8f9fa] border border-[#dadce0] rounded-xl p-5 space-y-3">
+          <div class="text-xs font-mono font-bold uppercase text-[#188038]">Slide 2 &bull; 4-Phase Enterprise Adoption &amp; Ramp Schedule (DWS &rarr; CUD)</div>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+            <div class="bg-white border border-[#dadce0] rounded-lg p-3.5 space-y-1.5">
+              <div class="font-bold text-[#1a73e8]">Phase 1 (Weeks 1&ndash;2)</div>
+              <div class="font-bold text-[#202124]">DWS Calendar Mode PoC</div>
+              <p class="text-[#5f6368]">Validate FP8 model accuracy, continuous batching (vLLM / TensorRT-LLM), and TTFT/TPOT latency on 1&ndash;2 nodes.</p>
+            </div>
+            <div class="bg-white border border-[#dadce0] rounded-lg p-3.5 space-y-1.5">
+              <div class="font-bold text-[#1a73e8]">Phase 2 (Weeks 3&ndash;4)</div>
+              <div class="font-bold text-[#202124]">Disaggregated llm-d Tuning</div>
+              <p class="text-[#5f6368]">Separate Prefill &amp; Decode pools and enable prefix caching to lift per-GPU throughput from 1k to 3k+ tok/s.</p>
+            </div>
+            <div class="bg-white border border-[#dadce0] rounded-lg p-3.5 space-y-1.5">
+              <div class="font-bold text-[#188038]">Phase 3 (Month 2)</div>
+              <div class="font-bold text-[#202124]">Production Traffic Cutover</div>
+              <p class="text-[#5f6368]">Deploy GKE Inference Gateway with autoscaling across primary and secondary availability zones.</p>
+            </div>
+            <div class="bg-white border border-[#dadce0] rounded-lg p-3.5 space-y-1.5">
+              <div class="font-bold text-[#188038]">Phase 4 (Month 3+)</div>
+              <div class="font-bold text-[#202124]">1Y / 3Y CUD Optimization</div>
+              <p class="text-[#5f6368]">Lock in 3-Year CUD steady-state baseline while bursting peak traffic onto DWS / Spot capacity.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-[#f8f9fa] border border-[#dadce0] rounded-xl p-5 space-y-3">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <span class="text-xs font-mono font-bold uppercase text-[#1a73e8]">Slide 3 &bull; Official Google Cloud GPU, TPU &amp; AI Infra Pitch Decks (go/ Links)</span>
+            <span class="text-xs font-mono text-[#5f6368]">Verified Internal Collateral</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div class="bg-white border border-[#dadce0] rounded-lg p-3.5 space-y-2">
+              <div class="font-bold text-[#202124]">Blackwell GPU Pitch Decks (A4 B200, A4X GB200, G4 96GB)</div>
+              <div class="flex flex-wrap gap-1.5 font-mono">
+                <a href="https://goto.google.com/a4-pitchdeck" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-[#e8f0fe] hover:bg-[#d2e3fc] text-[#174ea6] border border-[#1a73e8] font-bold transition">go/a4-pitchdeck &nearr;</a>
+                <a href="https://goto.google.com/g4-pitch-deck" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-[#e8f0fe] hover:bg-[#d2e3fc] text-[#174ea6] border border-[#1a73e8] font-bold transition">go/g4-pitch-deck &nearr;</a>
+                <a href="https://goto.google.com/g4-overview" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-[#f8f9fa] hover:bg-[#e8eaed] text-[#3c4043] border border-[#dadce0] transition">go/g4-overview &nearr;</a>
+                <a href="https://goto.google.com/a4x-pitchdeck" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-[#f8f9fa] hover:bg-[#e8eaed] text-[#3c4043] border border-[#dadce0] transition">go/a4x-pitchdeck &nearr;</a>
+                <a href="https://goto.google.com/a4-price" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-[#f8f9fa] hover:bg-[#e8eaed] text-[#3c4043] border border-[#dadce0] transition">go/a4-price &nearr;</a>
+                <a href="https://goto.google.com/g4-price" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-[#f8f9fa] hover:bg-[#e8eaed] text-[#3c4043] border border-[#dadce0] transition">go/g4-price &nearr;</a>
+              </div>
+            </div>
+            <div class="bg-white border border-[#dadce0] rounded-lg p-3.5 space-y-2">
+              <div class="font-bold text-[#202124]">Hopper (A3 Ultra H200, A3 Mega H100), DWS, GKE &amp; TPU7x</div>
+              <div class="flex flex-wrap gap-1.5 font-mono">
+                <a href="https://goto.google.com/a3ultra-preview-guide" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-[#e8f0fe] hover:bg-[#d2e3fc] text-[#174ea6] border border-[#1a73e8] font-bold transition">go/a3ultra-preview-guide &nearr;</a>
+                <a href="https://goto.google.com/a3mega-preview-guide" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-[#e8f0fe] hover:bg-[#d2e3fc] text-[#174ea6] border border-[#1a73e8] font-bold transition">go/a3mega-preview-guide &nearr;</a>
+                <a href="https://goto.google.com/ai-infra-pitch" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-[#f8f9fa] hover:bg-[#e8eaed] text-[#3c4043] border border-[#dadce0] transition">go/ai-infra-pitch &nearr;</a>
+                <a href="https://goto.google.com/dws-pitch" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-[#f8f9fa] hover:bg-[#e8eaed] text-[#3c4043] border border-[#dadce0] transition">go/dws-pitch &nearr;</a>
+                <a href="https://goto.google.com/gke-ai-pitch" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-[#f8f9fa] hover:bg-[#e8eaed] text-[#3c4043] border border-[#dadce0] transition">go/gke-ai-pitch &nearr;</a>
+                <a href="https://goto.google.com/which-gpu" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-[#f8f9fa] hover:bg-[#e8eaed] text-[#3c4043] border border-[#dadce0] transition">go/which-gpu &nearr;</a>
+                <a href="https://goto.google.com/gpus-pricing" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-[#f8f9fa] hover:bg-[#e8eaed] text-[#3c4043] border border-[#dadce0] transition">go/gpus-pricing &nearr;</a>
+                <a href="https://goto.google.com/cloudtpu-launchpad/ironwood/ironwood-overview" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-[#188038] border border-emerald-200 font-bold transition">go/cloudtpu-launchpad &nearr;</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: DISCOVERY CHEAT SHEET & ARCHITECTURE GUIDE
+       ========================================================================= -->
+  <div id="infDiscoveryModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden">
+    <div class="bg-white border border-[#dadce0] rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-[#dadce0] bg-[#f8f9fa] flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-[#202124]">LLM Inference Sizing Discovery Cheat Sheet &amp; Architecture Guide</h2>
+          <p class="text-xs text-[#5f6368]">Essential customer discovery questions, roofline formulas, and device-parity rules</p>
+        </div>
+        <button type="button" id="btnCloseCheatSheet" class="px-3 py-1.5 rounded-lg bg-[#f1f3f4] hover:bg-[#e8eaed] text-[#202124] text-xs font-semibold">
+          Close &times;
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto custom-scrollbar space-y-4 text-xs">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <div class="bg-[#f8f9fa] border border-[#dadce0] rounded-xl p-4 space-y-1.5">
+            <div class="font-bold text-[#1a73e8] text-sm">1. Model Topology &amp; Precision</div>
+            <p class="text-[#3c4043]">Total parameters (P_total) govern HBM weight storage and decode streaming bandwidth; active parameters (P_active) govern prefill FLOPs (2 &times; P_active FLOPs/token). Serving in FP8 (1 byte/param) halves minimum TP and doubles HBM bandwidth ceiling vs BF16.</p>
+          </div>
+          <div class="bg-[#f8f9fa] border border-[#dadce0] rounded-xl p-4 space-y-1.5">
+            <div class="font-bold text-[#1a73e8] text-sm">2. Traffic Demand &amp; Sequence Profile</div>
+            <p class="text-[#3c4043]">Convert Tokens/Minute (M tok/min) to sustained tok/s (`Tok/s = M_tok_min * 1e6 / 60`). Long-prompt workloads (e.g. 16K in / 512 out) are Prefill compute-bound; interactive chat &amp; reasoning (2K in / 1K out) are Decode HBM-bandwidth bound.</p>
+          </div>
+          <div class="bg-[#f8f9fa] border border-[#dadce0] rounded-xl p-4 space-y-1.5">
+            <div class="font-bold text-[#188038] text-sm">3. 8-GPU Node Alignment &amp; G4 Flexibility</div>
+            <p class="text-[#3c4043]">`a4-highgpu-8g` (B200), `a3-ultragpu-8g` (H200), and `a3-megagpu-8g` (H100) allocate in 8-GPU VM increments (`ceil(Raw_GPUs / 8) * 8`). `g4-standard` (RTX PRO 6000 Blackwell, 96 GB/GPU) supports 1, 2, 4, or 8 GPUs per VM.</p>
+          </div>
+          <div class="bg-[#f8f9fa] border border-[#dadce0] rounded-xl p-4 space-y-1.5">
+            <div class="font-bold text-[#188038] text-sm">4. Cloud TPU7x Device-Parity Rule</div>
+            <p class="text-[#3c4043]">Each TPU7x chip contains 2 dies (devices), each with 1 TensorCore + 96 GB HBM3e. A 4-chip TPU7x VM = 8 devices, aligning 1:1 by device count with an 8-GPU VM (`TP=2` uses 2 devices = 1 TPU7x chip vs 2 GPUs).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-[#dadce0] bg-white py-4 px-4 lg:px-8 mt-auto">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#5f6368]">
+      <div>Google Cloud AI Infrastructure &bull; GPU Recommender &amp; Roofline Sizing Agent</div>
+      <div class="font-mono">A4 (B200) &middot; A3 Ultra (H200) &middot; A3 Mega (H100) &middot; G4 (RTX PRO 6000) &middot; G2 (L4) &middot; TPU7x Parity</div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
