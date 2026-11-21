@@ -142,7 +142,7 @@
         <div>
           <h2 class="text-2xl sm:text-3xl font-bold text-[#202124]">Overview</h2>
           <p class="text-sm text-[#5f6368] mt-1">
-            High-level GPU cluster capacity, throughput, and unit economics ($/1M tokens) by enterprise AI use case on Google Cloud.
+            High-level GPU &amp; TPU cluster capacity, throughput, and unit economics ($/1M tokens &amp; $/1M images) across LLM and Computer Vision workloads on Google Cloud.
           </p>
         </div>
         <div class="flex items-center gap-2">
@@ -163,7 +163,7 @@
           <div class="text-sm font-semibold text-[#5f6368] uppercase tracking-wider">Select Enterprise Use Case</div>
           <div class="text-xs sm:text-sm text-[#5f6368] hidden sm:block">Hover over a card for workload profile, SLA &amp; recommended GPU architecture</div>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="execModelTierGrid">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4" id="execModelTierGrid">
           <!-- Card 1: Conversational AI & Assistants -->
           <button type="button" data-tier="small" id="tierCard-small" class="tier-card group relative hover:z-30 p-5 rounded-lg border text-left transition flex flex-col justify-between bg-white border-[#dadce0] hover:border-[#1a73e8] shadow-xs cursor-pointer">
             <div>
@@ -229,6 +229,23 @@
               <div class="font-bold text-[#1a73e8] mb-1.5">Workload Profile &amp; Scale (64× A4 Nodes = 512 B200 GPUs)</div>
               <div>Foundation pre-training (15T tokens) and large-scale reinforcement learning over 3.2 Tbps RoCEv2 fabric.</div>
               <div class="mt-2 pt-2 border-t border-[#dadce0] text-xs text-[#5f6368]"><span class="font-semibold text-[#202124]">Preferred GPU:</span> NVIDIA B200 (a4-highgpu-8g)</div>
+            </div>
+          </button>
+
+          <!-- Card 5: Vision, Geo-Perception & Batch CV -->
+          <button type="button" data-tier="vision_cv" id="tierCard-vision_cv" class="tier-card group relative hover:z-30 p-5 rounded-lg border text-left transition flex flex-col justify-between bg-white border-[#dadce0] hover:border-[#1a73e8] shadow-xs cursor-pointer">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <span class="tier-title text-lg font-bold leading-snug text-[#202124]">Vision, Geo &amp; Batch CV</span>
+                <span class="tier-active-dot w-2.5 h-2.5 rounded-full bg-[#1a73e8] shrink-0 mt-1.5 hidden"></span>
+              </div>
+              <div class="text-sm text-[#5f6368] mt-1.5 leading-relaxed">e.g. SigLIP2, ConvNeXt, MMDetection, LiDAR</div>
+            </div>
+            <div class="tier-price text-base sm:text-lg font-bold text-[#188038] mt-4" id="tierPrice-vision_cv">Hybrid &asymp; $31.6K/mo</div>
+            <div role="tooltip" class="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute left-0 right-0 top-full mt-2 z-30 p-4 rounded-lg bg-white text-[#3c4043] text-sm leading-relaxed shadow-xl border border-[#dadce0]">
+              <div class="font-bold text-[#188038] mb-1.5">Queue-Driven Batch CV &amp; Cloud Migration</div>
+              <div>1.5M new + 20M/mo re-run images (~20 MB/img) across ~25 1-GPU K8s microservices + periodic retraining.</div>
+              <div class="mt-2 pt-2 border-t border-[#dadce0] text-xs text-[#5f6368]"><span class="font-semibold text-[#202124]">Preferred Hybrid:</span> G4 96GB (1-GPU CUDA) + Cloud TPU v6e (1t PyTorch)</div>
             </div>
           </button>
         </div>
@@ -300,13 +317,16 @@
               </button>
             </div>
           </div>
-          <div class="p-4 rounded-lg bg-[#e8f0fe] border border-[#d2e3fc] text-xs leading-relaxed text-[#3c4043]">
+          <div class="p-4 rounded-lg bg-[#e8f0fe] border border-[#d2e3fc] text-xs leading-relaxed text-[#3c4043] space-y-1.5">
             <div class="font-bold text-[#1a73e8] uppercase tracking-wider mb-1 flex items-center gap-1.5">
               <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-              <span>Cloud TPU7x (Ironwood) Device-Parity Reference (1 Device = 1 GPU)</span>
+              <span>Cloud TPU7x &amp; TPU v6e Device-Parity Reference</span>
             </div>
             <p>
-              Each TPU7x chip contains <strong>2 dies (devices)</strong>, where 1 device = 1 TensorCore + <strong>96 GB HBM3e (7.37 TB/s BW/device)</strong>. A 4-chip TPU7x VM exposes <strong>8 devices (768 GB HBM/VM)</strong>, aligning 1:1 by device count with an 8-GPU VM.
+              <strong>TPU7x (Ironwood):</strong> 1 chip = <strong>2 dies (2 devices)</strong>, each with 1 TensorCore + <strong>96 GB HBM3e (7.37 TB/s, 2,307 TF FP8 / 1,153.5 TF BF16 per device)</strong>; a 4-chip VM = 8 devices (<a href="https://docs.cloud.google.com/tpu/docs/tpu7x" target="_blank" rel="noopener noreferrer" class="text-[#1a73e8] underline font-semibold">TPU7x docs</a>).
+            </p>
+            <p>
+              <strong>TPU v6e (Trillium):</strong> 1 chip = <strong>1 TensorCore (1 device)</strong> + <strong>32 GB HBM (1.60 TB/s, 918 TF BF16 / 1,836 TOPs INT8)</strong>; supports 1-chip <code>ct6e-standard-1t</code> slices for CV &amp; embeddings (<a href="https://docs.cloud.google.com/tpu/docs/v6e" target="_blank" rel="noopener noreferrer" class="text-[#1a73e8] underline font-semibold">TPU v6e docs</a>).
             </p>
           </div>
         </div>
@@ -567,6 +587,13 @@
                 </div>
                 <span class="text-[#1a73e8] text-sm font-bold hidden">&check;</span>
               </button>
+              <button type="button" data-rec-wk="cv_batch" class="rec-wk-btn p-3 rounded-lg border text-left transition flex items-center justify-between bg-white border-[#dadce0] text-[#3c4043] hover:border-[#1a73e8]">
+                <div>
+                  <div class="text-sm font-bold text-[#202124]">Computer Vision, Geo-Perception &amp; Batch Media</div>
+                  <div class="text-xs text-[#5f6368] font-normal mt-0.5">Queue-driven image classification, SigLIP2 embeddings &amp; custom-CUDA detectors (1-GPU G4 / L4 + TPU v6e)</div>
+                </div>
+                <span class="text-[#1a73e8] text-sm font-bold hidden">&check;</span>
+              </button>
             </div>
           </div>
         </div>
@@ -674,11 +701,11 @@
 
             <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs">
               <div class="pb-2.5 mb-2.5 border-b border-[#dadce0]">
-                <div class="text-xs font-bold uppercase tracking-wider text-[#1a73e8]">Cloud TPU7x Device-Parity Option</div>
-                <h4 class="text-base font-bold text-[#202124] mt-0.5">Cloud TPU7x (96 GB HBM3e / Device)</h4>
+                <div class="text-xs font-bold uppercase tracking-wider text-[#1a73e8]" id="recTpuBadge">Cloud TPU7x Device-Parity Option</div>
+                <h4 class="text-base font-bold text-[#202124] mt-0.5" id="recTpuTitle">Cloud TPU7x (96 GB HBM3e / Device)</h4>
               </div>
-              <p class="text-sm text-[#3c4043] leading-relaxed">
-                <strong>Device-for-device parity:</strong> Each TPU7x chip has 2 dies (devices), each with 1 TensorCore + 96 GB HBM3e (7.37 TB/s BW). A 4-chip TPU7x VM = 8 devices (768 GB HBM), matching an 8-GPU VM 1:1 by device count.
+              <p class="text-sm text-[#3c4043] leading-relaxed" id="recTpuDesc">
+                <strong>Device-for-device parity:</strong> Each TPU7x chip has 2 dies (devices), each with 1 TensorCore + 96 GB HBM3e (7.37 TB/s BW, 2,307 TF FP8). A 4-chip TPU7x VM = 8 devices (768 GB HBM), matching an 8-GPU VM 1:1 by device count.
               </p>
             </div>
           </div>
@@ -688,7 +715,7 @@
             <summary class="p-4 cursor-pointer font-bold text-[#202124] flex items-center justify-between hover:bg-[#f8f9fa] transition select-none">
               <span class="flex items-center gap-2">
                 <span class="px-2 py-0.5 rounded bg-emerald-50 text-[#188038] border border-emerald-200 text-xs font-bold">Reference</span>
-                <span>Google Cloud GPU &amp; TPU7x Generation Cheat Card (Per-Device &amp; Per-Node)</span>
+                <span>Google Cloud GPU, TPU7x &amp; TPU v6e Generation Cheat Card (Per-Device &amp; Per-Node)</span>
               </span>
               <span class="text-[#1a73e8] text-xs font-semibold">Toggle Matrix</span>
             </summary>
@@ -698,13 +725,13 @@
                   <thead>
                     <tr class="border-b border-[#dadce0] text-[#5f6368] uppercase text-xs tracking-wider">
                       <th class="py-2 pr-3 font-sans">Platform / VM</th>
-                      <th class="py-2 px-2">Region Zones</th>
                       <th class="py-2 px-2 text-right">Mem / Dev</th>
                       <th class="py-2 px-2 text-right">Mem / Node</th>
                       <th class="py-2 px-2 text-right">BW / Dev</th>
-                      <th class="py-2 px-2 text-right">FP8 / Dev</th>
+                      <th class="py-2 px-2 text-right">Peak TF / Dev</th>
                       <th class="py-2 px-2 text-right">3Y CUD</th>
-                      <th class="py-2 pl-2 text-right">Pitch Deck</th>
+                      <th class="py-2 px-2 text-right">Region Zones</th>
+                      <th class="py-2 pl-2 text-right">Docs / Deck</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-[#dadce0]/60 text-[#3c4043]" id="recCatalogTableBody">
@@ -725,19 +752,24 @@
       <!-- DOMAIN SWITCHER & WORKLOAD PRESETS BAR -->
       <div class="rounded-lg border border-[#dadce0] overflow-hidden bg-white shadow-xs">
         <section class="border-b border-[#dadce0] bg-[#f8f9fa] px-4 lg:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div class="inline-flex p-1 bg-[#f1f3f4] border border-[#dadce0] rounded-lg gap-1">
+          <div class="inline-flex flex-wrap p-1 bg-[#f1f3f4] border border-[#dadce0] rounded-lg gap-1">
             <button type="button" id="modeBtnInference" class="flex items-center space-x-2 px-4 py-1.5 rounded-lg text-sm font-bold transition bg-[#e8f0fe] text-[#202124] shadow-xs border border-[#1a73e8]">
               <svg class="w-4 h-4 text-[#1a73e8]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-              <span>Inference Serving Sizing</span>
-              <span class="text-xs px-1.5 py-0.5 rounded bg-white/80 text-[#202124] border border-[#d2e3fc] font-mono">Roofline + Empirical</span>
+              <span>LLM Inference Sizing</span>
+              <span class="text-xs px-1.5 py-0.5 rounded bg-white/80 text-[#202124] border border-[#d2e3fc] font-mono hidden xl:inline">Roofline + Empirical</span>
             </button>
             <button type="button" id="modeBtnTraining" class="flex items-center space-x-2 px-4 py-1.5 rounded-lg text-sm font-bold transition bg-white text-[#5f6368] hover:text-[#202124] border border-[#dadce0] hover:border-[#1a73e8]">
               <svg class="w-4 h-4 text-[#1a73e8]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
               <span>Model Training Sizing</span>
-              <span class="text-xs opacity-80 font-mono hidden md:inline">(Pre-Train &amp; Post-Train)</span>
+              <span class="text-xs opacity-80 font-mono hidden xl:inline">(Pre-Train &amp; SFT)</span>
+            </button>
+            <button type="button" id="modeBtnVision" class="flex items-center space-x-2 px-4 py-1.5 rounded-lg text-sm font-bold transition bg-white text-[#5f6368] hover:text-[#202124] border border-[#dadce0] hover:border-[#1a73e8]">
+              <svg class="w-4 h-4 text-[#188038]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              <span>Vision / CV &amp; Fleet Migration</span>
+              <span class="text-xs px-1.5 py-0.5 rounded bg-emerald-50 text-[#188038] border border-emerald-200 font-mono">Img/s + Legacy Mapper</span>
             </button>
           </div>
-          <div class="text-xs font-mono text-[#5f6368]">
+          <div class="text-xs font-mono text-[#5f6368]" id="cockpitDomainSubtitle">
             8-GPU VM Node Alignment &bull; Disaggregated llm-d &amp; Continuous Batching
           </div>
         </section>
@@ -746,7 +778,7 @@
         <section class="px-4 lg:px-6 py-2.5 bg-white flex flex-wrap items-center gap-2">
           <span class="uppercase tracking-wider text-xs font-bold text-[#5f6368] flex items-center gap-1.5 mr-1">
             <span class="w-2 h-2 rounded-full bg-[#8ab4f8] border border-[#1a73e8]"></span>
-            <span>Workload Presets:</span>
+            <span id="cockpitPresetsLabel">Workload Presets:</span>
           </span>
           <div class="flex flex-wrap items-center gap-1.5" id="cockpitPresetButtons">
             <button type="button" data-preset="llama70b_3k" class="preset-btn px-3 py-1 rounded-md text-xs font-bold border border-[#1a73e8] bg-[#e8f0fe] text-[#202124] transition">
@@ -766,6 +798,20 @@
             </button>
             <button type="button" data-preset="gemma27b_g4" class="preset-btn px-3 py-1 rounded-md text-xs font-medium border border-[#dadce0] bg-white text-[#3c4043] hover:border-[#1a73e8] transition">
               Gemma-3 27B / 70B on G4 (96GB GDDR7)
+            </button>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5 hidden" id="cvPresetButtons">
+            <button type="button" data-cv-preset="cv_hybrid_geo" class="cv-preset-btn px-3 py-1 rounded-md text-xs font-bold border border-[#1a73e8] bg-[#e8f0fe] text-[#202124] transition">
+              Multi-Model Geo &amp; Street-View Fleet (1.5M/day + 20M/mo &bull; Hybrid G4 + TPU v6e)
+            </button>
+            <button type="button" data-cv-preset="cv_siglip2_v6e" class="cv-preset-btn px-3 py-1 rounded-md text-xs font-medium border border-[#dadce0] bg-white text-[#3c4043] hover:border-[#1a73e8] transition">
+              SigLIP2-Giant 384px Retrieval (TPU v6e FP32 &bull; ~195 img/s/chip)
+            </button>
+            <button type="button" data-cv-preset="cv_backbone_v6e" class="cv-preset-btn px-3 py-1 rounded-md text-xs font-medium border border-[#dadce0] bg-white text-[#3c4043] hover:border-[#1a73e8] transition">
+              ConvNeXt / EfficientNet 224px Batch (TPU v6e BF16 &bull; ~2.1k img/s/chip)
+            </button>
+            <button type="button" data-cv-preset="cv_cuda_detectors_g4" class="cv-preset-btn px-3 py-1 rounded-md text-xs font-medium border border-[#dadce0] bg-white text-[#3c4043] hover:border-[#1a73e8] transition">
+              Custom-CUDA MMDetection &amp; LiDAR (1-GPU G4 96GB Microservices)
             </button>
           </div>
         </section>
@@ -809,6 +855,8 @@
                 <option value="h100">a3-megagpu-8g &mdash; NVIDIA H100 (80 GB HBM3/GPU, 3.35 TB/s)</option>
                 <option value="g4">g4-standard &mdash; RTX PRO 6000 Blackwell (96 GB GDDR7/GPU, 1.5 TB/s)</option>
                 <option value="l4">g2-standard &mdash; NVIDIA L4 (24 GB GDDR6/GPU, 0.30 TB/s)</option>
+                <option value="tpuv6e">ct6e-standard-8t &mdash; Cloud TPU v6e (32 GB HBM/Chip, 1.6 TB/s)</option>
+                <option value="tpu7x">tpu7x-8 &mdash; Cloud TPU7x (96 GB HBM3e/Device, 7.37 TB/s)</option>
               </select>
             </div>
 
@@ -1324,6 +1372,275 @@
           </div>
         </div>
       </div>
+
+      <!-- =====================================================================
+           COCKPIT DOMAIN C: VISION / CV & LEGACY FLEET MIGRATION (12-Col Grid)
+           ===================================================================== -->
+      <div id="visionViewContainer" class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 hidden">
+        <!-- LEFT COLUMN: CV PIPELINE & LEGACY MIGRATION INPUTS (5 cols) -->
+        <div class="lg:col-span-5 space-y-5">
+          <!-- CARD 1: REGION, IMAGE VOLUME & DATA GRAVITY -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-[#dadce0]">
+              <div class="flex items-center space-x-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 border border-[#188038]"></span>
+                <h2 class="text-base font-bold tracking-wide uppercase text-[#202124]">1. Region, Image Volume &amp; Data Gravity</h2>
+              </div>
+              <span id="cvRegionStatusBadge" class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-[#188038] border border-emerald-200">✓ G4 + TPU v6e Live</span>
+            </div>
+
+            <div>
+              <label for="cvRegionSelect" class="block text-sm font-semibold text-[#3c4043] mb-1">Target GCP Region (Data Residency)</label>
+              <select id="cvRegionSelect" class="w-full bg-[#f8f9fa] border border-[#dadce0] rounded-lg px-3 py-2 text-xs font-semibold text-[#202124]">
+                <option value="asia-southeast1">asia-southeast1 (Singapore)</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="cvInpDailyMillions" class="block text-xs font-semibold text-[#3c4043] mb-1">Daily New Images (M/day)</label>
+                <input type="number" id="cvInpDailyMillions" step="0.1" min="0.05" value="1.5" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
+              </div>
+              <div>
+                <label for="cvInpRerunMillions" class="block text-xs font-semibold text-[#3c4043] mb-1">Monthly Re-runs (M/mo)</label>
+                <input type="number" id="cvInpRerunMillions" step="1" min="0" value="20" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
+              </div>
+              <div>
+                <label for="cvInpImgSizeMB" class="block text-xs font-semibold text-[#3c4043] mb-1">Avg Raw Image (MB/img)</label>
+                <input type="number" id="cvInpImgSizeMB" step="1" min="0.2" value="20" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
+              </div>
+              <div>
+                <label for="cvInpPeakFactor" class="block text-xs font-semibold text-[#3c4043] mb-1">Queue Peak Headroom (&times;)</label>
+                <input type="number" id="cvInpPeakFactor" step="0.1" min="1.0" max="5.0" value="1.6" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
+              </div>
+            </div>
+
+            <div id="cvTrafficSummaryBox" class="p-3 rounded-lg bg-[#f8f9fa] border border-[#dadce0] text-xs font-mono text-[#3c4043] leading-relaxed">
+              Sustained: 25.1 img/s &bull; Peak Sized: 40.1 img/s &bull; Daily Read: 43.3 TB/day
+            </div>
+          </div>
+
+          <!-- CARD 2: MODEL MIX, CUDA LOCK-IN SPLIT & K8S MICROSERVICES -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-[#dadce0]">
+              <div class="flex items-center space-x-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#8ab4f8] border border-[#1a73e8]"></span>
+                <h2 class="text-base font-bold tracking-wide uppercase text-[#202124]">2. CV Model Mix &amp; K8s Granularity</h2>
+              </div>
+            </div>
+
+            <div>
+              <label for="cvModelArchetypeSelect" class="block text-xs font-semibold text-[#3c4043] mb-1">Primary Vision Pipeline Archetype</label>
+              <select id="cvModelArchetypeSelect" class="w-full bg-[#f8f9fa] border border-[#dadce0] rounded-lg px-3 py-2 text-xs font-semibold text-[#202124]">
+                <option value="hybrid_pipeline">Mixed Multi-Model Pipeline (ViT/CNN + Custom-CUDA Detectors)</option>
+                <option value="siglip2_giant">Heavy Vision Encoder / Retrieval (SigLIP2-Giant 384px &bull; 1.16B FP32)</option>
+                <option value="convnext_effnet">Standard CNN / Backbone Classifier (ConvNeXt-Tiny / EfficientNet 224px)</option>
+                <option value="custom_cuda_det">Custom-CUDA Object Detection &amp; 3D LiDAR (MMDetection / MMCV)</option>
+              </select>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label for="cvSliderPortablePct" class="text-xs font-semibold text-[#3c4043]">Standard PyTorch Share (Portable to TPU v6e)</label>
+                <span id="cvPortablePctBadge" class="text-xs font-mono font-bold text-[#188038]">40% Portable / 60% CUDA-Locked</span>
+              </div>
+              <input type="range" id="cvSliderPortablePct" min="0" max="100" step="5" value="40" class="w-full" />
+              <p class="text-[11px] text-[#5f6368] mt-1">Standard PyTorch models (SigLIP2, ConvNeXt, EfficientNet, ViT) run on TPU v6e via <code>torch.compile</code>; MMDetection/MMCV &amp; custom C++/CUDA ops stay on GPU.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="cvSelectPortableSku" class="block text-xs font-semibold text-[#3c4043] mb-1">Portable Tier Target</label>
+                <select id="cvSelectPortableSku" class="w-full bg-[#f8f9fa] border border-[#dadce0] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#202124]">
+                  <option value="tpuv6e" selected>TPU v6e (ct6e-1t &bull; 1 Chip)</option>
+                  <option value="g4">G4 96GB (1-GPU VM)</option>
+                  <option value="l4">L4 24GB (1-GPU VM)</option>
+                </select>
+              </div>
+              <div>
+                <label for="cvSelectCudaSku" class="block text-xs font-semibold text-[#3c4043] mb-1">CUDA-Locked Tier Target</label>
+                <select id="cvSelectCudaSku" class="w-full bg-[#f8f9fa] border border-[#dadce0] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#202124]">
+                  <option value="g4" selected>G4 96GB (1-GPU VM)</option>
+                  <option value="l4">L4 24GB (1-GPU VM)</option>
+                  <option value="h100">H100 80GB (8-GPU VM)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-2 border-t border-[#dadce0]">
+              <div>
+                <label for="cvInpDeployments" class="block text-xs font-semibold text-[#3c4043] mb-1">K8s Model Deployments</label>
+                <input type="number" id="cvInpDeployments" min="1" max="200" step="1" value="25" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
+              </div>
+              <div>
+                <label for="cvInpRetrainHrs" class="block text-xs font-semibold text-[#3c4043] mb-1">Retraining (GPU-hrs/mo)</label>
+                <input type="number" id="cvInpRetrainHrs" min="0" step="100" value="4380" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-2.5 rounded-lg bg-[#f8f9fa] border border-[#dadce0] text-xs">
+              <div>
+                <div class="font-bold text-[#202124]">Multi-Model Packing (MPS / Multi-Thread)</div>
+                <div class="text-[11px] text-[#5f6368]">Pack up to 3–4 lightweight models onto 1× 96GB G4 or 32GB TPU v6e</div>
+              </div>
+              <button type="button" id="cvBtnPackToggle" aria-pressed="false" class="px-2.5 py-1 rounded font-mono font-bold bg-white text-[#5f6368] border border-[#dadce0] cursor-pointer transition">
+                Off (1 Pod=1 Dev)
+              </button>
+            </div>
+          </div>
+
+          <!-- CARD 3: CLOUD-TO-CLOUD LEGACY GPU MIGRATION MAPPER -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-3.5">
+            <div class="flex items-center justify-between pb-2.5 border-b border-[#dadce0]">
+              <div>
+                <h2 class="text-sm font-bold tracking-wide uppercase text-[#202124]">3. Legacy AWS / Azure GPU Mapper</h2>
+                <p class="text-[11px] text-[#5f6368]">Enter source single-GPU / multi-GPU counts for 1:1 die-aligned GCP mapping</p>
+              </div>
+              <button type="button" id="cvBtnSyncLegacyFloor" class="px-2.5 py-1 rounded bg-[#e8f0fe] hover:bg-[#d2e3fc] text-[#174ea6] border border-[#1a73e8] text-[11px] font-mono font-bold transition cursor-pointer">
+                Sync to Sizing
+              </button>
+            </div>
+            <div class="grid grid-cols-5 gap-2 text-center">
+              <div>
+                <label for="legInpA10" class="block text-[11px] font-mono font-bold text-[#5f6368] mb-1">A10/A10G</label>
+                <input type="number" id="legInpA10" min="0" step="1" value="10" class="w-full google-input px-2 py-1 text-center text-xs font-mono font-bold" />
+              </div>
+              <div>
+                <label for="legInpL40s" class="block text-[11px] font-mono font-bold text-[#5f6368] mb-1">L40S 48G</label>
+                <input type="number" id="legInpL40s" min="0" step="1" value="0" class="w-full google-input px-2 py-1 text-center text-xs font-mono font-bold" />
+              </div>
+              <div>
+                <label for="legInpT4" class="block text-[11px] font-mono font-bold text-[#5f6368] mb-1">T4 16G</label>
+                <input type="number" id="legInpT4" min="0" step="1" value="0" class="w-full google-input px-2 py-1 text-center text-xs font-mono font-bold" />
+              </div>
+              <div>
+                <label for="legInpA100" class="block text-[11px] font-mono font-bold text-[#5f6368] mb-1">A100</label>
+                <input type="number" id="legInpA100" min="0" step="1" value="30" class="w-full google-input px-2 py-1 text-center text-xs font-mono font-bold" />
+              </div>
+              <div>
+                <label for="legInpH100" class="block text-[11px] font-mono font-bold text-[#5f6368] mb-1">H100</label>
+                <input type="number" id="legInpH100" min="0" step="1" value="4" class="w-full google-input px-2 py-1 text-center text-xs font-mono font-bold" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: HYBRID CV SIZING VERDICT, GOTCHAS, MAPPER & CCA EXPORT (7 cols) -->
+        <div class="lg:col-span-7 space-y-5">
+          <!-- 4 TOP CV KPI CARDS -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4 shadow-xs">
+              <div class="text-xs font-bold uppercase tracking-wider text-[#5f6368]">Target Hybrid Fleet</div>
+              <div id="cvKpiTotalFleet" class="text-lg sm:text-xl font-extrabold font-mono text-[#1a73e8] my-1.5">25 Devs + Retrain</div>
+              <div id="cvKpiFleetSub" class="text-[11px] font-mono text-[#5f6368]">10× v6e-1t + 15× G4</div>
+            </div>
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4 shadow-xs">
+              <div class="text-xs font-bold uppercase tracking-wider text-[#5f6368]">Monthly Spend</div>
+              <div id="cvKpiMonthlyCost" class="text-lg sm:text-xl font-extrabold font-mono text-[#202124] my-1.5">$42.8K / mo</div>
+              <div id="cvKpiCostSub" class="text-[11px] font-mono text-[#188038]">Inf + Retrain (3Y CUD)</div>
+            </div>
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4 shadow-xs">
+              <div class="text-xs font-bold uppercase tracking-wider text-[#5f6368]">Unit Economics</div>
+              <div id="cvKpiCostPer1MImg" class="text-lg sm:text-xl font-extrabold font-mono text-[#188038] my-1.5">$360 / 1M img</div>
+              <div id="cvKpiVolumeSub" class="text-[11px] font-mono text-[#5f6368]">65.0M images/mo</div>
+            </div>
+            <div class="bg-white border border-[#dadce0] rounded-lg p-4 shadow-xs">
+              <div class="text-xs font-bold uppercase tracking-wider text-[#5f6368]">Host I/O &amp; Decode</div>
+              <div id="cvKpiDataGravity" class="text-lg sm:text-xl font-extrabold font-mono text-[#202124] my-1.5">43.3 TB/day</div>
+              <div id="cvKpiHostSub" class="text-[11px] font-mono text-[#b06000]">High CPU/RAM decode</div>
+            </div>
+          </div>
+
+          <!-- EMPIRICAL PRODUCTION GOTCHAS & CUDA PORTABILITY TRIAGE -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#dadce0]">
+              <div>
+                <h3 class="text-sm font-bold text-[#202124] uppercase tracking-wider">Empirical Production Triage &amp; Benchmark Gotchas</h3>
+                <p class="text-xs text-[#5f6368]">Verified on Cloud TPU v6e (<code>torch.compile(dynamic=False)</code>, batch=8) &amp; single-GPU G4 / A100 fleets</p>
+              </div>
+              <a href="https://docs.cloud.google.com/tpu/docs/v6e" target="_blank" rel="noopener noreferrer" class="text-xs font-mono font-bold text-[#1a73e8] hover:underline">TPU v6e Specs &nearr;</a>
+            </div>
+            <div id="cvGotchasBox" class="space-y-2 text-xs">
+              <!-- Populated safely via DOM APIs in app.js -->
+            </div>
+          </div>
+
+          <!-- CLOUD-TO-CLOUD LEGACY GPU -> GCP REPLACEMENT MATRIX -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#dadce0]">
+              <div>
+                <h3 class="text-sm font-bold text-[#202124] uppercase tracking-wider">Source Cloud GPU &rarr; Google Cloud Replacement Plan</h3>
+                <p class="text-xs text-[#5f6368]">1:1 die-aligned mapping preserving single-GPU microservice topology (G4 1/2/4/8-GPU VMs &amp; TPU v6e 1t)</p>
+              </div>
+              <span id="cvLegacyTotalBadge" class="px-2 py-0.5 rounded bg-[#e8f0fe] text-[#174ea6] border border-[#d2e3fc] text-xs font-mono font-bold">44 Source GPUs</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs font-mono">
+                <thead>
+                  <tr class="border-b border-[#dadce0] text-[#5f6368] uppercase tracking-wider">
+                    <th class="py-2 pr-2 font-sans">Source SKU</th>
+                    <th class="py-2 px-2 text-right">Count</th>
+                    <th class="py-2 px-2 font-sans">GCP GPU Drop-In (CUDA)</th>
+                    <th class="py-2 px-2 font-sans">TPU v6e Option (PyTorch)</th>
+                    <th class="py-2 pl-2 text-right font-sans">Migration Path</th>
+                  </tr>
+                </thead>
+                <tbody id="cvLegacyMapperTableBody" class="divide-y divide-[#dadce0]/60 text-[#3c4043]">
+                  <!-- Populated safely in app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- EMPIRICAL CV BENCHMARK & UNIT ECONOMICS TABLE -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#dadce0]">
+              <div>
+                <h3 class="text-sm font-bold text-[#202124] uppercase tracking-wider">Cross-Platform CV Throughput &amp; $/1M Images Comparison</h3>
+                <p class="text-xs text-[#5f6368]" id="cvCompTableSubtitle">Evaluated at granular 1-GPU / 1-Chip slice alignment (vs 8-GPU node alignment where required)</p>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs font-mono">
+                <thead>
+                  <tr class="border-b border-[#dadce0] text-[#5f6368] uppercase tracking-wider">
+                    <th class="py-2 pr-2 font-sans">Platform / Granular Slice</th>
+                    <th class="py-2 px-2 text-right">Img/s / Dev</th>
+                    <th class="py-2 px-2 text-right">Inf Fleet</th>
+                    <th class="py-2 px-2 text-right">Inf Spend/mo</th>
+                    <th class="py-2 pl-2 text-right">$/1M Images</th>
+                  </tr>
+                </thead>
+                <tbody id="cvPlatformCompTableBody" class="divide-y divide-[#dadce0]/60 text-[#3c4043]">
+                  <!-- Populated safely in app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- CCA CAPACITY BRIEF & HYBRID GKE TERRAFORM EXPORT -->
+          <div class="bg-white border border-[#dadce0] rounded-lg p-5 shadow-xs space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 class="text-sm font-bold text-[#202124] uppercase tracking-wider">CCA Capacity Request Brief &amp; GKE Hybrid Terraform</h3>
+                <p class="text-xs text-[#5f6368]">Ready-to-paste regional capacity summary &amp; GKE NodePool IaC</p>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button type="button" id="cvExportModeCca" class="px-2.5 py-1 rounded bg-[#e8f0fe] text-[#174ea6] border border-[#1a73e8] text-xs font-mono font-bold transition cursor-pointer">
+                  CCA Summary
+                </button>
+                <button type="button" id="cvExportModeTf" class="px-2.5 py-1 rounded bg-white text-[#5f6368] border border-[#dadce0] hover:border-[#1a73e8] text-xs font-mono font-bold transition cursor-pointer">
+                  GKE Terraform
+                </button>
+                <button type="button" id="btnCopyCvExport" class="px-3 py-1 rounded bg-[#f1f3f4] hover:bg-[#e8eaed] text-[#1a73e8] border border-[#dadce0] text-xs font-mono font-bold transition cursor-pointer">
+                  Copy
+                </button>
+              </div>
+            </div>
+            <pre id="cvTerraformPre" class="bg-[#f8f9fa] p-4 rounded-lg border border-[#dadce0] text-xs font-mono text-[#3c4043] overflow-x-auto custom-scrollbar"></pre>
+          </div>
+        </div>
+      </div>
     </div>
 
   </main>
@@ -1463,8 +1780,16 @@
             <p class="text-[#3c4043]">`a4-highgpu-8g` (B200), `a3-ultragpu-8g` (H200), and `a3-megagpu-8g` (H100) allocate in 8-GPU VM increments (`ceil(Raw_GPUs / 8) * 8`). `g4-standard` (RTX PRO 6000 Blackwell, 96 GB/GPU) supports 1, 2, 4, or 8 GPUs per VM.</p>
           </div>
           <div class="bg-[#f8f9fa] border border-[#dadce0] rounded-xl p-4 space-y-1.5">
-            <div class="font-bold text-[#188038] text-sm">4. Cloud TPU7x Device-Parity Rule</div>
-            <p class="text-[#3c4043]">Each TPU7x chip contains 2 dies (devices), each with 1 TensorCore + 96 GB HBM3e. A 4-chip TPU7x VM = 8 devices, aligning 1:1 by device count with an 8-GPU VM (`TP=2` uses 2 devices = 1 TPU7x chip vs 2 GPUs).</p>
+            <div class="font-bold text-[#188038] text-sm">4. Cloud TPU7x &amp; TPU v6e Device-Parity Rules</div>
+            <p class="text-[#3c4043]"><strong>TPU7x:</strong> 1 chip = 2 dies (2 devices), 96 GB HBM3e &amp; 2,307 TF FP8 per device (4-chip VM = 8 devices). <strong>TPU v6e:</strong> 1 chip = 1 TensorCore (1 device), 32 GB HBM &amp; 918 TF BF16 per chip; use <code>ct6e-standard-1t</code> for isolated 1-chip microservices.</p>
+          </div>
+          <div class="bg-[#f8f9fa] border border-[#dadce0] rounded-xl p-4 space-y-1.5">
+            <div class="font-bold text-[#1a73e8] text-sm">5. Batch CV, PCIe Decode &amp; 1-GPU Granularity</div>
+            <p class="text-[#3c4043]">Queue-driven CV pipelines size by <code>Images/Day + Monthly Re-runs</code> and microservice count (often 20+ 1-GPU deployments). On fast CNNs (ConvNeXt / EfficientNet), ~2/3 of step time is Host&harr;Device PCIe copy and CPU image decode.</p>
+          </div>
+          <div class="bg-[#f8f9fa] border border-[#dadce0] rounded-xl p-4 space-y-1.5">
+            <div class="font-bold text-[#b06000] text-sm">6. CUDA Lock-In vs. PyTorch <code>torch.compile</code></div>
+            <p class="text-[#3c4043]">Keep custom C++/CUDA ops (<code>MMDetection/MMCV</code>, point-cloud) on single-GPU <code>g4-standard</code> (96 GB) or <code>L4</code>. Move standard PyTorch vision encoders to <code>TPU v6e</code>, keeping <code>SigLIP2</code> embeddings in <code>FP32</code> to preserve retrieval recall.</p>
           </div>
         </div>
       </div>
@@ -1474,8 +1799,8 @@
   <!-- Footer -->
   <footer class="border-t border-[#dadce0] bg-white py-4 px-4 lg:px-8 mt-auto">
     <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#5f6368]">
-      <div>Google Cloud AI Infrastructure &bull; GPU Recommender &amp; Roofline Sizing Agent</div>
-      <div class="font-mono">A4 (B200) &middot; A3 Ultra (H200) &middot; A3 Mega (H100) &middot; G4 (RTX PRO 6000) &middot; G2 (L4) &middot; TPU7x Parity</div>
+      <div>Google Cloud AI Infrastructure &bull; GPU &amp; TPU Sizing, Roofline &amp; CV Migration Agent</div>
+      <div class="font-mono">A4 (B200) &middot; A3 Ultra (H200) &middot; A3 Mega (H100) &middot; G4 (RTX PRO 6000) &middot; G2 (L4) &middot; TPU7x &middot; TPU v6e</div>
     </div>
   </footer>
 

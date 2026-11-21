@@ -139,19 +139,46 @@
       memPerDeviceGB: 96,
       memPerNodeGB: 768,
       bwTBps: 7.37,
-      fp8Tflops: 4614,
-      bf16Tflops: 2307,
+      fp8Tflops: 2307,
+      bf16Tflops: 1153.5,
       fabric: '1,200 GB/s 3D Torus ICI',
       pricing: { ondemand: 9.50, cud1y: 6.65, cud3y: 4.28 },
       pitchDecks: [
+        { label: 'TPU7x Docs', url: 'https://docs.cloud.google.com/tpu/docs/tpu7x' },
         { label: 'go/cloudtpu-launchpad', url: 'https://goto.google.com/cloudtpu-launchpad/ironwood/ironwood-overview' },
-        { label: 'go/ironwood-customer-faqs', url: 'https://goto.google.com/ironwood-customer-faqs' },
-        { label: 'go/tpu-gpu-session25', url: 'https://goto.google.com/tpu-gpu-session25' }
+        { label: 'go/ironwood-customer-faqs', url: 'https://goto.google.com/ironwood-customer-faqs' }
       ],
-      plainWords: 'Each TPU7x chip has 2 dies (devices), each with 1 TensorCore + 96 GB HBM3e (7.37 TB/s BW). A 4-chip TPU7x VM exposes 8 devices, matching an 8-GPU VM 1:1 by device count.',
+      plainWords: 'Each TPU7x chip contains 2 dies (2 software devices), each with 1 TensorCore + 96 GB HBM3e (7.37 TB/s BW) and 2,307 TFLOPs FP8 (4,614 TFLOPs FP8 / 2,307 TFLOPs BF16 per chip). A 4-chip TPU7x VM exposes 8 devices, matching an 8-GPU VM 1:1 by device count.',
       rationales: [
         '1:1 Device Parity: 1 TPU7x device (die) = 96 GB HBM3e + 7.37 TB/s bandwidth; 4-chip VM = 8 devices = 768 GB HBM.',
-        '4,614 TFLOPs FP8 per Device: Industry-leading compute density and 3D Torus optical interconnect.'
+        '2,307 TFLOPs FP8 / 1,153.5 TFLOPs BF16 per Device (4,614 FP8 / 2,307 BF16 per 2-die Chip) + 3D Torus ICI.'
+      ]
+    },
+    tpuv6e: {
+      id: 'tpuv6e',
+      name: 'Cloud TPU v6e (Trillium, 1 Device/Chip)',
+      shortName: 'Cloud TPU v6e (Trillium 32GB)',
+      machineType: 'ct6e-standard-1t/4t/8t (1 Chip = 1 Device)',
+      granularMachineType: 'ct6e-standard-1t (1 Chip = 1 Device)',
+      devicesPerNode: 8,
+      supportsSingleDeviceVm: true,
+      memPerDeviceGB: 32,
+      memPerNodeGB: 256,
+      bwTBps: 1.60,
+      fp8Tflops: 918,
+      bf16Tflops: 918,
+      int8Tops: 1836,
+      fabric: 'ICI 2D Torus + 200 Gbps gVNIC',
+      pricing: { ondemand: 2.70, cud1y: 1.89, cud3y: 1.215 },
+      pitchDecks: [
+        { label: 'TPU v6e Docs', url: 'https://docs.cloud.google.com/tpu/docs/v6e' },
+        { label: 'go/cloudtpu-launchpad', url: 'https://goto.google.com/cloudtpu-launchpad' }
+      ],
+      plainWords: 'Cost-efficiency Trillium TPU where 1 chip = 1 TensorCore + 2 SparseCores = 1 software device with 32 GB HBM (1.60 TB/s BW), 918 TFLOPs BF16, and 1,836 TOPs INT8. Supports single-chip slices (ct6e-standard-1t) ideal for PyTorch torch.compile vision encoders, classifiers, and <=32B serving.',
+      rationales: [
+        '1 Chip = 1 Device Granularity (ct6e-standard-1t/4t/8t): Deploy isolated 1-chip CV & embedding microservices ($1.22/chip-hr 3Y CUD) without 8-device node waste.',
+        '918 TFLOPs BF16 & 1,836 TOPs INT8 per Chip: 3.4x–3.8x speedup on standard PyTorch vision backbones (SigLIP2, ConvNeXt, EfficientNet) via torch.compile(dynamic=False).',
+        'Broad APAC & Global Availability: Live in asia-southeast1 (Singapore), asia-northeast1 (Tokyo), asia-south1 (Mumbai), us-central1, us-east1, and europe-west4.'
       ]
     }
   };
@@ -193,6 +220,16 @@
       presetKey: 'deepseek671b',
       postTrain: { gpus: '256 GPUs (32 Nodes)', duration: '~14 Days / campaign', cost: '$731K / campaign', sub: '32× a4-highgpu-8g (B200) • Reasoning RL & Distillation' },
       preTrain: { gpus: '512 GPUs (64 Nodes)', duration: '~42 Days (1.4 Mos)', cost: '$3.18M / mo', sub: '64× a4-highgpu-8g (B200) • 15T tokens • 3.2 Tbps RoCEv2' }
+    },
+    vision_cv: {
+      name: 'Vision, Geo-Perception & Batch CV',
+      preferredGpu: 'Hybrid: G4 96GB (1-GPU) + Cloud TPU v6e (1t)',
+      sku: 'g4',
+      isVisionCv: true,
+      cvPresetKey: 'cv_hybrid_geo',
+      contextDesc: 'Sized Reference: 1.5M new + 20M/mo re-run images (~20 MB/img = 43.3 TB/day) • 25 K8s CV microservices + 4,380 GPU-hrs/mo retraining',
+      postTrain: { gpus: '6× G4 or 4× H100 GPUs', duration: '4,380 GPU-hrs / mo', cost: '$5.8K–$19.3K / mo', sub: 'Continuous detector retraining & active-learning loops' },
+      preTrain: { gpus: '32 GPUs (4 Nodes)', duration: '~9 Days / backbone', cost: '$103K / campaign', sub: '4× a3-megagpu-8g (H100) • Vision foundation encoder pre-training' }
     }
   };
 
@@ -296,15 +333,99 @@
     }
   };
 
+  // Generalized Computer Vision, Geo-Perception & Legacy Fleet Migration Presets (100% Customer-Agnostic)
+  var CV_PRESETS = {
+    cv_hybrid_geo: {
+      dailyMillions: 1.5,
+      rerunMillions: 20.0,
+      imgSizeMB: 20,
+      peakFactor: 1.6,
+      archetype: 'hybrid_pipeline',
+      portablePct: 40,
+      portableSku: 'tpuv6e',
+      cudaSku: 'g4',
+      deployments: 25,
+      retrainHrs: 4380,
+      packModels: false,
+      legacy: { a10: 10, l40s: 0, t4: 0, a100: 30, h100: 4 }
+    },
+    cv_siglip2_v6e: {
+      dailyMillions: 5.0,
+      rerunMillions: 30.0,
+      imgSizeMB: 6,
+      peakFactor: 1.5,
+      archetype: 'siglip2_giant',
+      portablePct: 100,
+      portableSku: 'tpuv6e',
+      cudaSku: 'g4',
+      deployments: 4,
+      retrainHrs: 0,
+      packModels: false,
+      legacy: { a10: 0, l40s: 8, t4: 0, a100: 8, h100: 0 }
+    },
+    cv_backbone_v6e: {
+      dailyMillions: 25.0,
+      rerunMillions: 50.0,
+      imgSizeMB: 4,
+      peakFactor: 1.5,
+      archetype: 'convnext_effnet',
+      portablePct: 100,
+      portableSku: 'tpuv6e',
+      cudaSku: 'l4',
+      deployments: 6,
+      retrainHrs: 720,
+      packModels: true,
+      legacy: { a10: 16, l40s: 0, t4: 12, a100: 0, h100: 0 }
+    },
+    cv_cuda_detectors_g4: {
+      dailyMillions: 2.0,
+      rerunMillions: 15.0,
+      imgSizeMB: 18,
+      peakFactor: 1.6,
+      archetype: 'custom_cuda_det',
+      portablePct: 0,
+      portableSku: 'g4',
+      cudaSku: 'g4',
+      deployments: 20,
+      retrainHrs: 2920,
+      packModels: false,
+      legacy: { a10: 12, l40s: 6, t4: 0, a100: 16, h100: 2 }
+    }
+  };
+
+  // Empirical Host-Fed CV Throughput Anchors (images/sec per single GPU or single TPU device, batch=8)
+  var CV_EMPIRICAL_IMGS_PER_SEC = {
+    siglip2_giant: {
+      label: 'SigLIP2-Giant 384px (1.16B, FP32 Retrieval)',
+      portableRates: { tpuv6e: 195, g4: 180, l4: 55, h100: 360, h200: 390, b200: 680, tpu7x: 420 },
+      cudaRates: { g4: 180, l4: 55, h100: 360, h200: 390, b200: 680 }
+    },
+    convnext_effnet: {
+      label: 'ConvNeXt-Tiny / EfficientNet-B0 224px (BF16)',
+      portableRates: { tpuv6e: 2080, g4: 1750, l4: 680, h100: 3100, h200: 3300, b200: 4800, tpu7x: 3400 },
+      cudaRates: { g4: 1750, l4: 680, h100: 3100, h200: 3300, b200: 4800 }
+    },
+    custom_cuda_det: {
+      label: 'Custom-CUDA Detector / 3D Point-Cloud (MMDetection/MMCV)',
+      portableRates: { tpuv6e: 0, g4: 8.5, l4: 2.8, h100: 18.5, h200: 20.0, b200: 34.0, tpu7x: 0 },
+      cudaRates: { g4: 8.5, l4: 2.8, h100: 18.5, h200: 20.0, b200: 34.0 }
+    },
+    hybrid_pipeline: {
+      label: 'Mixed CV Pipeline (ViT/CNN + Custom-CUDA Detectors)',
+      portableRates: { tpuv6e: 420, g4: 380, l4: 140, h100: 760, h200: 820, b200: 1350, tpu7x: 880 },
+      cudaRates: { g4: 8.5, l4: 2.8, h100: 18.5, h200: 20.0, b200: 34.0 }
+    }
+  };
+
   // Verified Live GCP Regional GPU & TPU Catalog (43 GCP Regions + Global)
   var REGION_CATALOG = {
     'global': {
       id: 'global',
       label: 'Global / All Regions (Unconstrained)',
       group: 'Global / Multi-Region',
-      skus: { b200: ['all'], h200: ['all'], h100: ['all'], g4: ['all'], l4: ['all'], tpu7x: ['all'] },
-      otherAccels: 'GB200, A100 80GB/40GB, TPU v6e/v5p/v5e, V100, T4',
-      advisory: 'All 6 primary catalog accelerators (B200, H200, H100, G4 RTX PRO 6000, L4, Cloud TPU7x) are evaluated globally without regional filtering. Select a specific GCP region to filter by live GCE zone availability.'
+      skus: { b200: ['all'], h200: ['all'], h100: ['all'], g4: ['all'], l4: ['all'], tpu7x: ['all'], tpuv6e: ['all'] },
+      otherAccels: 'GB200, A100 80GB/40GB, TPU v5p/v5e, V100, T4',
+      advisory: 'All 7 primary catalog accelerators (B200, H200, H100, G4 RTX PRO 6000, L4, Cloud TPU7x, Cloud TPU v6e) are evaluated globally without regional filtering. Select a specific GCP region to filter by live GCE zone availability.'
     },
     // --- Australia & New Zealand (AuNZ) ---
     'australia-southeast1': {
@@ -328,25 +449,25 @@
       id: 'asia-southeast1',
       label: 'asia-southeast1 (Singapore)',
       group: 'Asia Pacific (APAC)',
-      skus: { b200: ['b'], h100: ['b', 'c'], g4: ['a', 'b', 'c'], l4: ['a', 'b', 'c'] },
-      otherAccels: 'A100 80GB (zone c), A100 40GB (zones a, b, c), TPU v6e (zone b), TPU v5e (zone b), T4 (zones a, b, c)',
-      advisory: 'Primary SEA & AuNZ low-latency hub: hosts B200 (zone b), H100 (zones b, c), G4 RTX PRO 6000 (zones a, b, c), and L4 (zones a, b, c), plus A100 80GB and TPU v6e/v5e. H200 and TPU7x are not currently in Singapore (use asia-south1/south2 for H200 or us-central1 for TPU7x).'
+      skus: { b200: ['b'], h100: ['b', 'c'], g4: ['a', 'b', 'c'], l4: ['a', 'b', 'c'], tpuv6e: ['b'] },
+      otherAccels: 'A100 80GB (zone c), A100 40GB (zones a, b, c), TPU v5e (zone b), T4 (zones a, b, c)',
+      advisory: 'Primary SEA & AuNZ low-latency hub: hosts B200 (zone b), H100 (zones b, c), G4 RTX PRO 6000 96GB (zones a, b, c), L4 (zones a, b, c), and Cloud TPU v6e (zone b), plus A100 80GB/40GB. H200 and TPU7x are not currently in Singapore (use asia-south1/south2 for H200 or us-central1 for TPU7x).'
     },
     'asia-northeast1': {
       id: 'asia-northeast1',
       label: 'asia-northeast1 (Tokyo, Japan)',
       group: 'Asia Pacific (APAC)',
-      skus: { b200: ['b'], h100: ['b', 'c'], g4: ['b'], l4: ['a', 'b', 'c'] },
-      otherAccels: 'A100 40GB (zones a, c), TPU v6e (zone b), TPU v5e (zone b), T4 (zones a, c)',
-      advisory: 'Major North Asia hub: hosts B200 (zone b, 576 GPUs in APAC Q2 tracker), H100 (zones b, c), G4 RTX PRO 6000 (zone b, 180 GPUs ready), and L4 (zones a, b, c), plus TPU v6e/v5e.'
+      skus: { b200: ['b'], h100: ['b', 'c'], g4: ['b'], l4: ['a', 'b', 'c'], tpuv6e: ['b'] },
+      otherAccels: 'A100 40GB (zones a, c), TPU v5e (zone b), T4 (zones a, c)',
+      advisory: 'Major North Asia hub: hosts B200 (zone b, 576 GPUs in APAC Q2 tracker), H100 (zones b, c), G4 RTX PRO 6000 (zone b, 180 GPUs ready), L4 (zones a, b, c), and Cloud TPU v6e (zone b).'
     },
     'asia-south1': {
       id: 'asia-south1',
       label: 'asia-south1 (Mumbai, India)',
       group: 'Asia Pacific (APAC)',
-      skus: { h200: ['b'], h100: ['b', 'c'], g4: ['c'], l4: ['a', 'b', 'c'] },
-      otherAccels: 'TPU v6e (zones b, c), T4 (zones a, b)',
-      advisory: 'Mumbai hosts H200 141GB (zone b), H100 80GB (zones b, c), G4 RTX PRO 6000 96GB (zone c, 480 GPUs in India pool), and L4 (zones a, b, c), plus TPU v6e. For B200 in India, use asia-south2 (Delhi zone c).'
+      skus: { h200: ['b'], h100: ['b', 'c'], g4: ['c'], l4: ['a', 'b', 'c'], tpuv6e: ['b', 'c'] },
+      otherAccels: 'T4 (zones a, b)',
+      advisory: 'Mumbai hosts H200 141GB (zone b), H100 80GB (zones b, c), G4 RTX PRO 6000 96GB (zone c, 480 GPUs in India pool), L4 (zones a, b, c), and Cloud TPU v6e (zones b, c). For B200 in India, use asia-south2 (Delhi zone c).'
     },
     'asia-south2': {
       id: 'asia-south2',
@@ -360,9 +481,9 @@
       id: 'asia-east1',
       label: 'asia-east1 (Changhua County, Taiwan)',
       group: 'Asia Pacific (APAC)',
-      skus: { h100: ['c'], g4: ['a', 'b'], l4: ['a', 'b', 'c'] },
-      otherAccels: 'TPU v6e (zone c), TPU v5e (zones a, b, c), V100 (zone c), T4 (zones a, c)',
-      advisory: 'Taiwan hosts H100 80GB (zone c), G4 RTX PRO 6000 96GB (zones a, b), and L4 (zones a, b, c), plus TPU v6e/v5e.'
+      skus: { h100: ['c'], g4: ['a', 'b'], l4: ['a', 'b', 'c'], tpuv6e: ['c'] },
+      otherAccels: 'TPU v5e (zones a, b, c), V100 (zone c), T4 (zones a, c)',
+      advisory: 'Taiwan hosts H100 80GB (zone c), G4 RTX PRO 6000 96GB (zones a, b), L4 (zones a, b, c), and Cloud TPU v6e (zone c).'
     },
     'asia-northeast3': {
       id: 'asia-northeast3',
@@ -378,7 +499,7 @@
       group: 'Asia Pacific (APAC)',
       skus: { g4: ['b', 'c'] },
       otherAccels: 'NVIDIA T4 (zones a, b)',
-      advisory: 'Jakarta hosts NVIDIA RTX PRO 6000 Blackwell G4 96GB (zones b, c) and legacy T4 (zones a, b). Ideal for in-country 70B/8B inference on G4; for H100 or B200, pair with asia-southeast1 (Singapore).'
+      advisory: 'Jakarta hosts NVIDIA RTX PRO 6000 Blackwell G4 96GB (zones b, c) and legacy T4 (zones a, b). Ideal for in-country 70B/8B and CV inference on G4; for H100, B200, or TPU v6e, pair with asia-southeast1 (Singapore).'
     },
     'asia-east2': {
       id: 'asia-east2',
@@ -386,7 +507,7 @@
       group: 'Asia Pacific (APAC)',
       skus: {},
       otherAccels: 'NVIDIA T4 (zones a, c) only',
-      advisory: 'Hong Kong only hosts legacy NVIDIA T4 GPUs (zones a, c) — none of the 6 modern LLM catalog SKUs (B200, H200, H100, G4, L4, TPU7x) are deployed here. Route LLM workloads to asia-east1 (Taiwan) or asia-southeast1 (Singapore).'
+      advisory: 'Hong Kong only hosts legacy NVIDIA T4 GPUs (zones a, c) — none of the 7 modern catalog SKUs (B200, H200, H100, G4, L4, TPU7x, TPU v6e) are deployed here. Route workloads to asia-east1 (Taiwan) or asia-southeast1 (Singapore).'
     },
     'asia-northeast2': {
       id: 'asia-northeast2',
@@ -409,33 +530,33 @@
       id: 'us-central1',
       label: 'us-central1 (Iowa, USA)',
       group: 'Americas (US, Canada, LATAM)',
-      skus: { b200: ['b'], h200: ['b'], h100: ['a', 'b', 'c'], g4: ['b', 'c', 'f'], l4: ['a', 'b', 'c'], tpu7x: ['b', 'c'] },
-      otherAccels: 'GB200 (zones a, b), A100 80GB (zones a, c), A100 40GB (zones a, b, c, f), TPU v6e (zones a, b, c), TPU v5p (zone a), TPU v5e (zone a)',
-      advisory: 'Flagship US region with 100% catalog coverage: hosts all 6 primary SKUs — B200 (zone b), H200 (zone b), H100 (zones a, b, c), G4 (zones b, c, f), L4 (zones a, b, c), and Cloud TPU7x (zones b, c) — plus GB200 and TPU v6e/v5p.'
+      skus: { b200: ['b'], h200: ['b'], h100: ['a', 'b', 'c'], g4: ['b', 'c', 'f'], l4: ['a', 'b', 'c'], tpu7x: ['b', 'c'], tpuv6e: ['a', 'b', 'c'] },
+      otherAccels: 'GB200 (zones a, b), A100 80GB (zones a, c), A100 40GB (zones a, b, c, f), TPU v5p (zone a), TPU v5e (zone a)',
+      advisory: 'Flagship US region with 100% catalog coverage: hosts all 7 primary SKUs — B200 (zone b), H200 (zone b), H100 (zones a, b, c), G4 (zones b, c, f), L4 (zones a, b, c), Cloud TPU7x (zones b, c), and Cloud TPU v6e (zones a, b, c).'
     },
     'us-east1': {
       id: 'us-east1',
       label: 'us-east1 (South Carolina, USA)',
       group: 'Americas (US, Canada, LATAM)',
-      skus: { b200: ['b', 'd'], g4: ['b', 'd'], l4: ['b', 'c', 'd'], tpu7x: ['b'] },
-      otherAccels: 'GB200 (zone d), A100 40GB (zone b), TPU v6e (zones b, d), TPU v5p (zone d), TPU v5e (zones b, c)',
-      advisory: 'Major US East AI hub: hosts B200 (zones b, d), G4 (zones b, d), L4 (zones b, c, d), and Cloud TPU7x (zone b), plus GB200 (zone d) and TPU v6e/v5p. For H100/H200 on US East Coast, use us-east4 (N. Virginia) or us-east5 (Columbus).'
+      skus: { b200: ['b', 'd'], g4: ['b', 'd'], l4: ['b', 'c', 'd'], tpu7x: ['b'], tpuv6e: ['b', 'd'] },
+      otherAccels: 'GB200 (zone d), A100 40GB (zone b), TPU v5p (zone d), TPU v5e (zones b, c)',
+      advisory: 'Major US East AI hub: hosts B200 (zones b, d), G4 (zones b, d), L4 (zones b, c, d), Cloud TPU7x (zone b), and Cloud TPU v6e (zones b, d), plus GB200 (zone d). For H100/H200 on US East Coast, use us-east4 (N. Virginia) or us-east5 (Columbus).'
     },
     'us-east4': {
       id: 'us-east4',
       label: 'us-east4 (Northern Virginia, USA)',
       group: 'Americas (US, Canada, LATAM)',
-      skus: { b200: ['b'], h200: ['b'], h100: ['a', 'b', 'c'], g4: ['b', 'c'], l4: ['a', 'c'] },
-      otherAccels: 'GB200 (zone b), A100 80GB (zone c), TPU v6e (zones a, b), TPU v5e (zone b), T4 (zones a, b, c)',
-      advisory: 'Full GPU coverage on US East Coast: hosts B200 (zone b), H200 (zone b), H100 (zones a, b, c), G4 (zones b, c), and L4 (zones a, c), plus GB200 and TPU v6e. For TPU7x on US East, use us-east1 or us-east5.'
+      skus: { b200: ['b'], h200: ['b'], h100: ['a', 'b', 'c'], g4: ['b', 'c'], l4: ['a', 'c'], tpuv6e: ['a', 'b'] },
+      otherAccels: 'GB200 (zone b), A100 80GB (zone c), TPU v5e (zone b), T4 (zones a, b, c)',
+      advisory: 'Full GPU + Trillium coverage on US East Coast: hosts B200 (zone b), H200 (zone b), H100 (zones a, b, c), G4 (zones b, c), L4 (zones a, c), and Cloud TPU v6e (zones a, b). For TPU7x on US East, use us-east1 or us-east5.'
     },
     'us-east5': {
       id: 'us-east5',
       label: 'us-east5 (Columbus, Ohio, USA)',
       group: 'Americas (US, Canada, LATAM)',
-      skus: { h200: ['a'], h100: ['a'], g4: ['a', 'b', 'c'], tpu7x: ['a'] },
-      otherAccels: 'A100 80GB (zones a, b), TPU v6e (zones a, b, c), TPU v5p (zones a, b, c), TPU v5e (zones a, b, c)',
-      advisory: 'Columbus hosts H200 (zone a), H100 (zone a), G4 (zones a, b, c), and Cloud TPU7x (zone a), plus large TPU v6e/v5p/v5e pods.'
+      skus: { h200: ['a'], h100: ['a'], g4: ['a', 'b', 'c'], tpu7x: ['a'], tpuv6e: ['a', 'b', 'c'] },
+      otherAccels: 'A100 80GB (zones a, b), TPU v5p (zones a, b, c), TPU v5e (zones a, b, c)',
+      advisory: 'Columbus hosts H200 (zone a), H100 (zone a), G4 (zones a, b, c), Cloud TPU7x (zone a), and Cloud TPU v6e (zones a, b, c).'
     },
     'us-south1': {
       id: 'us-south1',
@@ -449,9 +570,9 @@
       id: 'us-west1',
       label: 'us-west1 (Oregon, USA)',
       group: 'Americas (US, Canada, LATAM)',
-      skus: { h200: ['c'], h100: ['a', 'b'], g4: ['a', 'b', 'c'], l4: ['a', 'b', 'c'] },
-      otherAccels: 'A100 40GB (zone b), TPU v6e (zone c), TPU v5e (zones a, c), V100/T4 (zones a, b)',
-      advisory: 'US West flagship: hosts H200 (zone c), H100 (zones a, b), G4 (zones a, b, c), and L4 (zones a, b, c), plus TPU v6e/v5e. For B200 on US West Coast, use us-west2 (Los Angeles) or us-west3 (Salt Lake City).'
+      skus: { h200: ['c'], h100: ['a', 'b'], g4: ['a', 'b', 'c'], l4: ['a', 'b', 'c'], tpuv6e: ['c'] },
+      otherAccels: 'A100 40GB (zone b), TPU v5e (zones a, c), V100/T4 (zones a, b)',
+      advisory: 'US West flagship: hosts H200 (zone c), H100 (zones a, b), G4 (zones a, b, c), L4 (zones a, b, c), and Cloud TPU v6e (zone c). For B200 on US West Coast, use us-west2 (Los Angeles) or us-west3 (Salt Lake City).'
     },
     'us-west2': {
       id: 'us-west2',
@@ -505,26 +626,26 @@
       id: 'southamerica-east1',
       label: 'southamerica-east1 (São Paulo, Brazil)',
       group: 'Americas (US, Canada, LATAM)',
-      skus: { g4: ['a', 'b'] },
-      otherAccels: 'TPU v6e (zone c), T4 (zones a, b, c)',
+      skus: { g4: ['a', 'b'], tpuv6e: ['c'] },
+      otherAccels: 'T4 (zones a, b, c)',
       advisory: 'São Paulo hosts NVIDIA RTX PRO 6000 Blackwell G4 96GB (zones a, b) and Cloud TPU v6e (zone c), plus legacy T4.'
     },
     'southamerica-west1': {
       id: 'southamerica-west1',
       label: 'southamerica-west1 (Santiago, Chile)',
       group: 'Americas (US, Canada, LATAM)',
-      skus: {},
-      otherAccels: 'TPU v6e (zone a), TPU v5e (zone c) only',
-      advisory: 'Santiago hosts Cloud TPU v6e (zone a) and TPU v5e (zone c), but no GPU SKUs. For GPUs in South America, use southamerica-east1 (São Paulo G4).'
+      skus: { tpuv6e: ['a'] },
+      otherAccels: 'TPU v5e (zone c)',
+      advisory: 'Santiago hosts Cloud TPU v6e (zone a) and TPU v5e (zone c), with no GPU SKUs. For GPUs in South America, use southamerica-east1 (São Paulo G4).'
     },
     // --- Europe, Middle East & Africa (EMEA) ---
     'europe-west4': {
       id: 'europe-west4',
       label: 'europe-west4 (Eemshaven, Netherlands)',
       group: 'Europe, Middle East & Africa (EMEA)',
-      skus: { b200: ['b'], h200: ['a'], h100: ['b', 'c'], g4: ['a', 'b', 'c'], l4: ['a', 'b', 'c'] },
-      otherAccels: 'GB200 (zone b), A100 80GB/40GB (zones a, b), TPU v6e (zones a, b), TPU v5p (zone b), TPU v5e (zones a, b)',
-      advisory: 'Flagship European AI hub: hosts B200 (zone b), H200 (zone a), H100 (zones b, c), G4 (zones a, b, c), and L4 (zones a, b, c), plus GB200 and TPU v6e/v5p. For TPU7x in Europe, use europe-west2 (London zone a).'
+      skus: { b200: ['b'], h200: ['a'], h100: ['b', 'c'], g4: ['a', 'b', 'c'], l4: ['a', 'b', 'c'], tpuv6e: ['a', 'b'] },
+      otherAccels: 'GB200 (zone b), A100 80GB/40GB (zones a, b), TPU v5p (zone b), TPU v5e (zones a, b)',
+      advisory: 'Flagship European AI hub: hosts B200 (zone b), H200 (zone a), H100 (zones b, c), G4 (zones a, b, c), L4 (zones a, b, c), and Cloud TPU v6e (zones a, b), plus GB200. For TPU7x in Europe, use europe-west2 (London zone a).'
     },
     'europe-west1': {
       id: 'europe-west1',
@@ -697,7 +818,22 @@
     trParamsB: 70,
     trTokensT: 2.0,
     trNodes: 32,
-    trMfu: 45
+    trMfu: 45,
+    // Vision / CV & Legacy Migration Cockpit State
+    activeCvPreset: 'cv_hybrid_geo',
+    cvDailyMillions: 1.5,
+    cvRerunMillions: 20.0,
+    cvImgSizeMB: 20,
+    cvPeakFactor: 1.6,
+    cvArchetype: 'hybrid_pipeline',
+    cvPortablePct: 40,
+    cvPortableSku: 'tpuv6e',
+    cvCudaSku: 'g4',
+    cvDeployments: 25,
+    cvRetrainHrs: 4380,
+    cvPackModels: false,
+    cvExportMode: 'cca',
+    legacyFleet: { a10: 10, l40s: 0, t4: 0, a100: 30, h100: 4 }
   };
 
   function getRegionInfo(regId) {
@@ -711,16 +847,16 @@
   }
 
   function formatRegionSkuSummary(regObj) {
-    if (regObj.id === 'global') return '[All 6 SKUs]';
-    var order = ['b200', 'h200', 'h100', 'g4', 'l4', 'tpu7x'];
-    var names = { b200: 'B200', h200: 'H200', h100: 'H100', g4: 'G4', l4: 'L4', tpu7x: 'TPU7x' };
+    if (regObj.id === 'global') return '[All 7 SKUs]';
+    var order = ['b200', 'h200', 'h100', 'g4', 'l4', 'tpu7x', 'tpuv6e'];
+    var names = { b200: 'B200', h200: 'H200', h100: 'H100', g4: 'G4', l4: 'L4', tpu7x: 'TPU7x', tpuv6e: 'TPUv6e' };
     var present = [];
     order.forEach(function (k) {
       if (regObj.skus && regObj.skus[k] && regObj.skus[k].length > 0) {
         present.push(names[k]);
       }
     });
-    if (present.length === 6) return '[All 6 SKUs: B200, H200, H100, G4, L4, TPU7x]';
+    if (present.length === 7) return '[All 7 SKUs: B200, H200, H100, G4, L4, TPU7x, TPUv6e]';
     if (present.length > 0) return '[' + present.join(', ') + ']';
     if (regObj.otherAccels && regObj.otherAccels.indexOf('No GPU') === -1 && regObj.otherAccels !== 'None') {
       return '[Legacy/Other: ' + regObj.otherAccels.split('(')[0].trim() + ']';
@@ -730,7 +866,7 @@
 
   function getBestAvailableSkuInRegion(regId, preferredOrder) {
     var info = getRegionInfo(regId);
-    var order = preferredOrder || ['b200', 'h200', 'h100', 'g4', 'l4', 'tpu7x'];
+    var order = preferredOrder || ['b200', 'h200', 'h100', 'g4', 'l4', 'tpu7x', 'tpuv6e'];
     for (var i = 0; i < order.length; i++) {
       var k = order[i];
       if (info.skus && info.skus[k] && info.skus[k].length > 0) {
@@ -744,7 +880,8 @@
     var selectConfigs = [
       { id: 'ovRegionSelect', includeGlobal: true, defaultVal: state.region },
       { id: 'recSelectRegion', includeGlobal: true, defaultVal: state.recRegion },
-      { id: 'infRegionSelect', includeGlobal: true, defaultVal: state.region }
+      { id: 'infRegionSelect', includeGlobal: true, defaultVal: state.region },
+      { id: 'cvRegionSelect', includeGlobal: true, defaultVal: state.region }
     ];
     var groupsOrder = [
       'Global / Multi-Region',
@@ -902,28 +1039,174 @@
     };
   }
 
+  function alignCvDevices(skuKey, rawDevs) {
+    if (rawDevs <= 0) return 0;
+    if (skuKey === 'g4' || skuKey === 'l4' || skuKey === 'tpuv6e') {
+      return Math.ceil(rawDevs);
+    }
+    return Math.ceil(rawDevs / 8) * 8;
+  }
+
+  function getCvGranularSliceLabel(skuKey) {
+    if (skuKey === 'tpuv6e') return 'ct6e-standard-1t (1 Chip = 1 Dev)';
+    if (skuKey === 'g4') return 'g4-standard-48 (1× G4 96GB)';
+    if (skuKey === 'l4') return 'g2-standard-12 (1× L4 24GB)';
+    return HARDWARE_CATALOG[skuKey] ? HARDWARE_CATALOG[skuKey].machineType : skuKey;
+  }
+
+  // Vision / CV & Legacy Migration Hybrid Physics Engine
+  function computeVisionSizing(overrides) {
+    var cfg = overrides || {};
+    var dailyM = Math.max(0.01, typeof cfg.dailyMillions === 'number' ? cfg.dailyMillions : state.cvDailyMillions);
+    var rerunM = Math.max(0, typeof cfg.rerunMillions === 'number' ? cfg.rerunMillions : state.cvRerunMillions);
+    var imgMB = Math.max(0.1, typeof cfg.imgSizeMB === 'number' ? cfg.imgSizeMB : state.cvImgSizeMB);
+    var peakFactor = Math.max(1.0, typeof cfg.peakFactor === 'number' ? cfg.peakFactor : state.cvPeakFactor);
+    var archetype = cfg.archetype || state.cvArchetype || 'hybrid_pipeline';
+    var portablePct = typeof cfg.portablePct === 'number' ? cfg.portablePct : state.cvPortablePct;
+    var portableSku = cfg.portableSku || state.cvPortableSku || 'tpuv6e';
+    var cudaSku = cfg.cudaSku || state.cvCudaSku || 'g4';
+    var deployments = Math.max(1, typeof cfg.deployments === 'number' ? cfg.deployments : state.cvDeployments);
+    var retrainHrs = Math.max(0, typeof cfg.retrainHrs === 'number' ? cfg.retrainHrs : state.cvRetrainHrs);
+    var packModels = typeof cfg.packModels === 'boolean' ? cfg.packModels : !!state.cvPackModels;
+
+    if (archetype === 'custom_cuda_det' && portableSku === 'tpuv6e') {
+      portablePct = 0;
+    }
+
+    var monthlyImagesMillions = (dailyM * 30.0) + rerunM;
+    var monthlyImages = monthlyImagesMillions * 1e6;
+    var sustainedImgSec = monthlyImages / SECONDS_PER_MONTH;
+    var peakImgSec = sustainedImgSec * peakFactor;
+    var dailyReadTB = (dailyM + (rerunM / 30.0)) * imgMB;
+
+    var pShare = Math.min(1.0, Math.max(0.0, portablePct / 100.0));
+    var cShare = 1.0 - pShare;
+    var packFactor = packModels ? 3 : 1;
+
+    var portableDeps = Math.round(deployments * pShare);
+    var cudaDeps = Math.max(0, deployments - portableDeps);
+    var portableFloor = pShare > 0 ? Math.max(1, Math.ceil(portableDeps / packFactor)) : 0;
+    var cudaFloor = cShare > 0 ? Math.max(1, Math.ceil(cudaDeps / packFactor)) : 0;
+
+    var archObj = CV_EMPIRICAL_IMGS_PER_SEC[archetype] || CV_EMPIRICAL_IMGS_PER_SEC.hybrid_pipeline;
+    var pRawRate = (archObj.portableRates[portableSku] || 180);
+    var cRawRate = (archObj.cudaRates[cudaSku] || 8.5);
+    var pEffRate = pRawRate * 0.85;
+    var cEffRate = cRawRate * 0.85;
+
+    var pThruDevs = pShare > 0 && pEffRate > 0 ? Math.ceil((peakImgSec * pShare) / pEffRate) : 0;
+    var cThruDevs = cShare > 0 && cEffRate > 0 ? Math.ceil((peakImgSec * cShare) / cEffRate) : 0;
+
+    var pRawDevs = Math.max(pThruDevs, portableFloor);
+    var cRawDevs = Math.max(cThruDevs, cudaFloor);
+
+    var pAligned = alignCvDevices(portableSku, pRawDevs);
+    var cAligned = alignCvDevices(cudaSku, cRawDevs);
+
+    var pHw = HARDWARE_CATALOG[portableSku] || HARDWARE_CATALOG.tpuv6e;
+    var cHw = HARDWARE_CATALOG[cudaSku] || HARDWARE_CATALOG.g4;
+    var pHr = pHw.pricing[state.pricingBasis] || pHw.pricing.cud3y;
+    var cHr = cHw.pricing[state.pricingBasis] || cHw.pricing.cud3y;
+
+    var infMonthlyCost = ((pAligned * pHr) + (cAligned * cHr)) * HOURS_PER_MONTH;
+    var retrainHw = HARDWARE_CATALOG[cudaSku === 'h100' ? 'h100' : 'g4'];
+    var retrainHr = retrainHw.pricing[state.pricingBasis] || retrainHw.pricing.cud3y;
+    var retrainMonthlyCost = retrainHrs * retrainHr;
+    var totalMonthlyCost = infMonthlyCost + retrainMonthlyCost;
+
+    var infCostPer1MImg = infMonthlyCost / Math.max(0.01, monthlyImagesMillions);
+    var totalCostPer1MImg = totalMonthlyCost / Math.max(0.01, monthlyImagesMillions);
+
+    var estHostVcpu = Math.max(16, Math.round(deployments * (packModels ? 3 : 4) + peakImgSec * (imgMB / 12.0)));
+    var estHostRamGB = Math.max(64, Math.round(deployments * (packModels ? 16 : 28)));
+
+    return {
+      dailyM: dailyM,
+      rerunM: rerunM,
+      imgMB: imgMB,
+      peakFactor: peakFactor,
+      archetype: archetype,
+      archLabel: archObj.label,
+      portablePct: Math.round(pShare * 100),
+      portableSku: portableSku,
+      cudaSku: cudaSku,
+      pHw: pHw,
+      cHw: cHw,
+      pRawRate: pRawRate,
+      cRawRate: cRawRate,
+      pThruDevs: pThruDevs,
+      cThruDevs: cThruDevs,
+      portableFloor: portableFloor,
+      cudaFloor: cudaFloor,
+      pAligned: pAligned,
+      cAligned: cAligned,
+      totalInfDevs: pAligned + cAligned,
+      retrainHrs: retrainHrs,
+      retrainAvgDevs: retrainHrs > 0 ? Math.max(1, Math.ceil(retrainHrs / HOURS_PER_MONTH)) : 0,
+      retrainHw: retrainHw,
+      monthlyImagesMillions: monthlyImagesMillions,
+      sustainedImgSec: sustainedImgSec,
+      peakImgSec: peakImgSec,
+      dailyReadTB: dailyReadTB,
+      infMonthlyCost: infMonthlyCost,
+      retrainMonthlyCost: retrainMonthlyCost,
+      totalMonthlyCost: totalMonthlyCost,
+      infCostPer1MImg: infCostPer1MImg,
+      totalCostPer1MImg: totalCostPer1MImg,
+      estHostVcpu: estHostVcpu,
+      estHostRamGB: estHostRamGB,
+      packModels: packModels
+    };
+  }
+
   // Render View 1: Overview
   function renderOverview() {
     var tierObj = OVERVIEW_TIERS[state.overviewTier] || OVERVIEW_TIERS.medium;
     var primaryHw = HARDWARE_CATALOG[state.sku];
     var res = computePlatformSizing(primaryHw, state, false);
+    var cvOverviewRes = computeVisionSizing();
+
+    var cvCardPrice = document.getElementById('tierPrice-vision_cv');
+    if (cvCardPrice) {
+      cvCardPrice.textContent = 'Hybrid ≈ ' + fmtMoneyK(cvOverviewRes.totalMonthlyCost) + '/mo';
+    }
 
     document.getElementById('execAdvVerdictName').textContent = tierObj.name;
-    document.getElementById('execAdvVerdictScore').textContent = 'Preferred GPU: ' + primaryHw.name;
+    document.getElementById('execAdvVerdictScore').textContent = tierObj.isVisionCv
+      ? ('Preferred Hybrid: ' + cvOverviewRes.pHw.shortName + ' + ' + cvOverviewRes.cHw.shortName)
+      : ('Preferred Accelerator: ' + primaryHw.name);
     document.getElementById('execAdvVerdictContext').textContent = tierObj.contextDesc;
 
-    if (state.overviewLens === 'serving') {
-      var devWord = primaryHw.id === 'tpu7x' ? 'Devices' : 'GPUs';
+    if (tierObj.isVisionCv && state.overviewLens === 'serving') {
+      var fleetParts = [];
+      if (cvOverviewRes.pAligned > 0) fleetParts.push(cvOverviewRes.pAligned + '× ' + cvOverviewRes.portableSku.toUpperCase());
+      if (cvOverviewRes.cAligned > 0) fleetParts.push(cvOverviewRes.cAligned + '× ' + cvOverviewRes.cudaSku.toUpperCase());
+      document.getElementById('ovKpi1Label').textContent = 'Hybrid CV Serving Fleet';
+      document.getElementById('ovKpi1Value').textContent = fleetParts.join(' + ');
+      document.getElementById('ovKpi1Sub').textContent =
+        '1-Chip ct6e-standard-1t (PyTorch) + 1-GPU G4 96GB (CUDA) • ' + cvOverviewRes.peakImgSec.toFixed(1) + ' peak img/s';
+
+      document.getElementById('ovKpi2Label').textContent = 'Monthly Spend (Inf + Retrain)';
+      document.getElementById('ovKpi2Value').textContent = fmtMoneyK(cvOverviewRes.totalMonthlyCost) + ' / mo';
+      document.getElementById('ovKpi2Sub').textContent =
+        fmtMoneyK(cvOverviewRes.infMonthlyCost) + ' inf + ' + fmtMoneyK(cvOverviewRes.retrainMonthlyCost) + ' retrain (' + state.pricingBasis.toUpperCase() + ')';
+
+      document.getElementById('ovKpi3Label').textContent = 'Batch CV Unit Economics';
+      document.getElementById('ovKpi3Value').textContent = '$' + cvOverviewRes.infCostPer1MImg.toFixed(0) + ' / 1M img';
+      document.getElementById('ovKpi3Sub').textContent =
+        cvOverviewRes.monthlyImagesMillions.toFixed(1) + 'M images/mo • ' + cvOverviewRes.dailyReadTB.toFixed(1) + ' TB/day read';
+    } else if (state.overviewLens === 'serving') {
+      var devWord = (primaryHw.id === 'tpu7x' || primaryHw.id === 'tpuv6e') ? 'Devices' : 'GPUs';
       document.getElementById('ovKpi1Label').textContent = 'Serving Pool';
       document.getElementById('ovKpi1Value').textContent = fmtInt(res.alignedDevices) + ' ' + devWord + ' (' + res.nodesNeeded + ' Nodes)';
       document.getElementById('ovKpi1Sub').textContent =
         res.nodesNeeded + '× ' + primaryHw.machineType + ' (' + (res.prefillNodes * 8) + ' prefill + ' + (res.decodeNodes * 8) + ' decode) • ' +
-        fmtInt(res.effTpsPerDevice) + ' eff. tok/s/GPU';
+        fmtInt(res.effTpsPerDevice) + ' eff. tok/s/dev';
 
       document.getElementById('ovKpi2Label').textContent = 'Monthly Cost';
       document.getElementById('ovKpi2Value').textContent = fmtMoneyK(res.monthlyCost) + ' / mo';
       document.getElementById('ovKpi2Sub').textContent =
-        state.pricingBasis.toUpperCase() + ' ($' + res.hourlyRate.toFixed(2) + '/GPU-hr • ' + fmtMoneyK(res.monthlyCost * 12) + '/yr)';
+        state.pricingBasis.toUpperCase() + ' ($' + res.hourlyRate.toFixed(2) + '/dev-hr • ' + fmtMoneyK(res.monthlyCost * 12) + '/yr)';
 
       document.getElementById('ovKpi3Label').textContent = 'Unit Economics';
       document.getElementById('ovKpi3Value').textContent = '$' + res.costPer1M.toFixed(2) + ' / 1M tok';
@@ -972,7 +1255,7 @@
       regBody.textContent = regInfo.advisory + (regInfo.otherAccels && regInfo.otherAccels !== 'None' ? ' (Other accelerators in region: ' + regInfo.otherAccels + '.)' : '');
     }
 
-    var allCatalogOrder = ['b200', 'h200', 'h100', 'g4', 'l4', 'tpu7x'];
+    var allCatalogOrder = ['b200', 'h200', 'h100', 'g4', 'l4', 'tpu7x', 'tpuv6e'];
     var availCount = 0;
     if (zonePillsBox) {
       zonePillsBox.replaceChildren();
@@ -1009,13 +1292,13 @@
 
     if (skuCountBadge) {
       if (state.region === 'global') {
-        skuCountBadge.textContent = 'All 6 Catalog SKUs (Global)';
+        skuCountBadge.textContent = 'All 7 Catalog SKUs (Global)';
         skuCountBadge.className = 'px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-[#e6f4ea] text-[#137333] border border-[#ceead6]';
       } else if (availCount > 0) {
-        skuCountBadge.textContent = availCount + ' / 6 Catalog SKUs in ' + state.region;
+        skuCountBadge.textContent = availCount + ' / 7 Catalog SKUs in ' + state.region;
         skuCountBadge.className = 'px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-[#e8f0fe] text-[#174ea6] border border-[#d2e3fc]';
       } else {
-        skuCountBadge.textContent = '0 / 6 Catalog SKUs in ' + state.region;
+        skuCountBadge.textContent = '0 / 7 Catalog SKUs in ' + state.region;
         skuCountBadge.className = 'px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-[#fce8e6] text-[#c5221f] border border-[#fad2cf]';
       }
     }
@@ -1024,7 +1307,7 @@
     if (mismatchBox && mismatchText && switchBtn) {
       if (state.region !== 'global' && primaryZones.length === 0) {
         mismatchBox.classList.remove('hidden');
-        var bestFallback = getBestAvailableSkuInRegion(state.region, ['h200', 'b200', 'g4', 'h100', 'l4', 'tpu7x']);
+        var bestFallback = getBestAvailableSkuInRegion(state.region, ['h200', 'b200', 'g4', 'h100', 'l4', 'tpu7x', 'tpuv6e']);
         if (bestFallback) {
           var fbHw = HARDWARE_CATALOG[bestFallback];
           var fbZones = getRegionSkuZones(state.region, bestFallback);
@@ -1041,14 +1324,15 @@
           };
         } else {
           mismatchText.textContent =
-            'None of the 6 primary LLM catalog SKUs are deployed in ' + state.region + ' (' + regInfo.otherAccels + '). Please select a nearby regional AI hub.';
-          switchBtn.textContent = 'Switch Region to us-central1 (All 6 SKUs)';
+            'None of the 7 primary catalog SKUs are deployed in ' + state.region + ' (' + regInfo.otherAccels + '). Please select a nearby regional AI hub.';
+          switchBtn.textContent = 'Switch Region to us-central1 (All 7 SKUs)';
           switchBtn.onclick = function () {
             state.region = 'us-central1';
             syncControlsFromState();
             renderOverview();
             renderCockpit();
             renderTrainingCockpit();
+            renderVisionCockpit();
           };
         }
       } else {
@@ -1059,7 +1343,7 @@
     // Render Multi-Platform Visual Comparison Bars
     var barsContainer = document.getElementById('ovPlatformBarsContainer');
     barsContainer.replaceChildren();
-    var order = ['b200', 'h200', 'h100', 'g4', 'tpu7x'];
+    var order = tierObj.isVisionCv ? ['tpuv6e', 'g4', 'l4', 'h100', 'tpu7x'] : ['b200', 'h200', 'h100', 'g4', 'tpu7x', 'tpuv6e'];
     var results = order.map(function (k) {
       return computePlatformSizing(HARDWARE_CATALOG[k], state, true);
     });
@@ -1108,7 +1392,7 @@
       top.appendChild(right);
 
       var barTrack = createEl('div', 'w-full h-2 bg-white rounded-full overflow-hidden border border-[#dadce0]');
-      var barFill = createEl('div', r.hw.id === 'tpu7x' ? 'h-full bg-[#188038]' : 'h-full bg-[#1a73e8]');
+      var barFill = createEl('div', (r.hw.id === 'tpu7x' || r.hw.id === 'tpuv6e') ? 'h-full bg-[#188038]' : 'h-full bg-[#1a73e8]');
       var pct = Math.max(8, Math.round((r.monthlyCost / maxCost) * 100));
       barFill.style.width = pct + '%';
       barTrack.appendChild(barFill);
@@ -1326,6 +1610,15 @@
       scores.l4 -= 60;
       reasons.b200.push('Foundation Pre-Training Fabric: 3.2 Tbps RoCEv2 NICs + 1,800 GB/s NVLink 5 scale linearly across multi-node 3D-parallel training clusters.');
       reasons.h200.push('3.2 Tbps RoCEv2 RDMA Fabric: Matches A4 inter-node network bandwidth for large-scale FSDP and Megatron-LM pre-training.');
+    } else if (wk === 'cv_batch') {
+      scores.g4 += 38;
+      scores.l4 += 32;
+      scores.h100 += 4;
+      scores.h200 -= 26;
+      scores.b200 -= 34;
+      reasons.g4.unshift('1-GPU Granularity for Custom-CUDA CV (g4-standard): Supports 1, 2, 4, or 8 GPUs/VM (96 GB GDDR7 @ $1.33/hr 3Y CUD) — drop-in replacement for single-GPU A10, L40S, and A100 K8s pods running MMDetection/MMCV or LiDAR ops without 8-GPU node waste.');
+      reasons.l4.unshift('Ultra-Low-Cost Single-GPU Vision Tier ($0.36/hr 3Y CUD): Ideal 24 GB single-GPU replacement for T4 / A10 lightweight classifiers, OCR, and video decode microservices.');
+      reasons.h100.unshift('Detector Retraining Tier: Best reserved for periodic heavy object-detector retraining (e.g. 4–8 GPUs) rather than fragmented 1-GPU inference deployments.');
     }
 
     // 5. Regional Availability Enforcement & Runtime Modifiers
@@ -1432,7 +1725,8 @@
       inference_online: 'Real-Time Serving',
       inference_batch: 'Offline Batch',
       posttrain: 'Fine-Tuning (SFT/RL)',
-      pretrain: 'Pre-Training'
+      pretrain: 'Pre-Training',
+      cv_batch: 'Vision / Batch CV'
     };
 
     var criteriaBadge = document.getElementById('recActiveCriteriaBadge');
@@ -1464,7 +1758,26 @@
     var srcText = document.getElementById('recSizingSourceText');
     var unitSub = document.getElementById('recPrimaryUnitSub');
 
-    if (state.recWorkload === 'pretrain' || state.recWorkload === 'posttrain') {
+    if (state.recWorkload === 'cv_batch') {
+      var recCv = computeVisionSizing({ cudaSku: primaryKey === 'l4' ? 'l4' : 'g4', portableSku: 'tpuv6e' });
+      if (srcText) {
+        srcText.textContent = 'Batch CV Hybrid Fleet • 1.5M new/day + 20M/mo re-runs (65M images/mo)';
+      }
+      if (kpi1Lbl) kpi1Lbl.textContent = 'Hybrid CV Serving Pool';
+      document.getElementById('recPrimaryPool').textContent =
+        recCv.pAligned + '× TPU v6e + ' + recCv.cAligned + '× ' + recCv.cudaSku.toUpperCase();
+      document.getElementById('recPrimaryPoolSub').textContent =
+        '1-Chip ct6e-standard-1t (PyTorch) + 1-GPU ' + recCv.cHw.shortName + ' (Custom CUDA)';
+
+      if (kpi2Lbl) kpi2Lbl.textContent = 'Est. Monthly Spend';
+      document.getElementById('recPrimaryMonthly').textContent = fmtMoneyK(recCv.totalMonthlyCost) + ' / mo';
+      document.getElementById('recPrimaryMonthlySub').textContent =
+        fmtMoneyK(recCv.infMonthlyCost) + ' inf + ' + fmtMoneyK(recCv.retrainMonthlyCost) + ' retrain (' + state.pricingBasis.toUpperCase() + ')';
+
+      if (kpi3Lbl) kpi3Lbl.textContent = 'Cost per 1M Images';
+      document.getElementById('recPrimaryUnit').textContent = '$' + recCv.infCostPer1MImg.toFixed(0) + ' / 1M img';
+      if (unitSub) unitSub.textContent = 'Inference unit cost @ ' + recCv.dailyReadTB.toFixed(1) + ' TB/day read';
+    } else if (state.recWorkload === 'pretrain' || state.recWorkload === 'posttrain') {
       var isPost = state.recWorkload === 'posttrain';
       var trainNodes = isPost ? Math.max(1, Math.round(scaleProfile.trNodes / 4)) : scaleProfile.trNodes;
       var trainGpus = trainNodes * pHw.devicesPerNode;
@@ -1633,6 +1946,24 @@
       '/GPU-hr 3Y CUD): ' +
       altReason;
 
+    // Dynamic TPU Parity Card (TPU v6e for Vision/CV & <32B, TPU7x for >=32B LLM)
+    var tpuBadgeEl = document.getElementById('recTpuBadge');
+    var tpuTitleEl = document.getElementById('recTpuTitle');
+    var tpuDescEl = document.getElementById('recTpuDesc');
+    if (tpuBadgeEl && tpuTitleEl && tpuDescEl) {
+      if (state.recWorkload === 'cv_batch' || state.recModelScale === '<14b') {
+        tpuBadgeEl.textContent = 'Cloud TPU v6e (Trillium) Vision & PyTorch Option';
+        tpuTitleEl.textContent = 'Cloud TPU v6e (ct6e-standard-1t • 1 Chip = 1 Device, 32 GB HBM)';
+        tpuDescEl.textContent =
+          'Standard PyTorch CV win: 1 TPU v6e chip = 1 TensorCore = 1 device (918 TF BF16, $1.22/hr 3Y CUD). Verified torch.compile(dynamic=False) benchmarks deliver ~195 img/s on SigLIP2-Giant 384px (FP32 locked for retrieval recall) and ~2,080 img/s on ConvNeXt/EfficientNet 224px (BF16).';
+      } else {
+        tpuBadgeEl.textContent = 'Cloud TPU7x Device-Parity Option';
+        tpuTitleEl.textContent = 'Cloud TPU7x (96 GB HBM3e / Device • 2 Devices / Chip)';
+        tpuDescEl.textContent =
+          'Device-for-device parity: Each TPU7x chip has 2 dies (2 devices), each with 1 TensorCore + 96 GB HBM3e (7.37 TB/s BW, 2,307 TF FP8 / 1,153.5 TF BF16 per device). A 4-chip TPU7x VM = 8 devices (768 GB HBM), matching an 8-GPU VM 1:1 by device count.';
+      }
+    }
+
     // Save current recommendation for "Load into Engineering Cockpit"
     state.lastRecPrimaryKey = primaryKey;
     state.lastRecScaleProfile = scaleProfile;
@@ -1640,7 +1971,7 @@
     // Populate Cheat Card Matrix with Region Zones & Pitch Deck links
     var catBody = document.getElementById('recCatalogTableBody');
     catBody.replaceChildren();
-    ['b200', 'h200', 'h100', 'g4', 'l4', 'tpu7x'].forEach(function (k) {
+    ['b200', 'h200', 'h100', 'g4', 'l4', 'tpu7x', 'tpuv6e'].forEach(function (k) {
       var h = HARDWARE_CATALOG[k];
       var zList = getRegionSkuZones(state.recRegion, k);
       var isAv = zList.length > 0;
@@ -1784,7 +2115,7 @@
     // Render Cross-Platform Table
     var compBody = document.getElementById('cockpitCompTableBody');
     compBody.replaceChildren();
-    ['b200', 'h200', 'h100', 'g4', 'tpu7x', 'l4'].forEach(function (k) {
+    ['b200', 'h200', 'h100', 'g4', 'tpu7x', 'tpuv6e', 'l4'].forEach(function (k) {
       var hw = HARDWARE_CATALOG[k];
       var r = computePlatformSizing(hw, state, true);
       var kZones = getRegionSkuZones(state.region, k);
@@ -1885,6 +2216,325 @@
     document.getElementById('trTerraformPre').textContent = tfCode;
   }
 
+  // Render Vision / CV & Legacy Fleet Migration Cockpit
+  function renderVisionCockpit() {
+    var cv = computeVisionSizing();
+    var pZones = getRegionSkuZones(state.region, cv.portableSku);
+    var cZones = getRegionSkuZones(state.region, cv.cudaSku);
+    var cvRegBadge = document.getElementById('cvRegionStatusBadge');
+    if (cvRegBadge) {
+      if (state.region === 'global') {
+        cvRegBadge.textContent = '✓ Global (All SKUs)';
+        cvRegBadge.className = 'text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-[#e6f4ea] text-[#137333] border border-[#ceead6]';
+      } else if (pZones.length > 0 && cZones.length > 0) {
+        cvRegBadge.textContent =
+          '✓ ' + cv.portableSku.toUpperCase() + ' (' + pZones.join(',') + ') + ' + cv.cudaSku.toUpperCase() + ' (' + cZones.join(',') + ')';
+        cvRegBadge.className = 'text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-[#e6f4ea] text-[#137333] border border-[#ceead6]';
+      } else if (cZones.length > 0 || pZones.length > 0) {
+        var missing = pZones.length === 0 ? cv.portableSku.toUpperCase() : cv.cudaSku.toUpperCase();
+        cvRegBadge.textContent = '⚠ ' + missing + ' not in ' + state.region;
+        cvRegBadge.className = 'text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-[#fef7e0] text-[#b06000] border border-[#fde293]';
+      } else {
+        cvRegBadge.textContent = '✗ Neither SKU in ' + state.region;
+        cvRegBadge.className = 'text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-[#fce8e6] text-[#c5221f] border border-[#fad2cf]';
+      }
+    }
+
+    var sumBox = document.getElementById('cvTrafficSummaryBox');
+    if (sumBox) {
+      sumBox.textContent =
+        'Sustained: ' + cv.sustainedImgSec.toFixed(1) + ' img/s • Peak Sized: ' + cv.peakImgSec.toFixed(1) + ' img/s (' +
+        cv.monthlyImagesMillions.toFixed(1) + 'M img/mo) • Daily Read: ' + cv.dailyReadTB.toFixed(1) + ' TB/day';
+    }
+
+    var pctBadge = document.getElementById('cvPortablePctBadge');
+    if (pctBadge) {
+      pctBadge.textContent = cv.portablePct + '% Portable / ' + (100 - cv.portablePct) + '% CUDA-Locked';
+    }
+
+    // 4 Top KPIs
+    var fleetArr = [];
+    if (cv.pAligned > 0) fleetArr.push(cv.pAligned + '× ' + cv.portableSku.toUpperCase());
+    if (cv.cAligned > 0) fleetArr.push(cv.cAligned + '× ' + cv.cudaSku.toUpperCase());
+    document.getElementById('cvKpiTotalFleet').textContent = fleetArr.join(' + ') || '0 Devs';
+    document.getElementById('cvKpiFleetSub').textContent =
+      'Thruput need: ' + (cv.pThruDevs + cv.cThruDevs) + ' • Pod floor: ' + (cv.portableFloor + cv.cudaFloor) +
+      (cv.retrainAvgDevs > 0 ? ' (+~' + cv.retrainAvgDevs + ' retrain)' : '');
+
+    document.getElementById('cvKpiMonthlyCost').textContent = fmtMoneyK(cv.totalMonthlyCost) + ' / mo';
+    document.getElementById('cvKpiCostSub').textContent =
+      fmtMoneyK(cv.infMonthlyCost) + ' inf + ' + fmtMoneyK(cv.retrainMonthlyCost) + ' retrain (' + state.pricingBasis.toUpperCase() + ')';
+
+    document.getElementById('cvKpiCostPer1MImg').textContent = '$' + cv.infCostPer1MImg.toFixed(1) + ' / 1M';
+    document.getElementById('cvKpiVolumeSub').textContent =
+      cv.monthlyImagesMillions.toFixed(1) + 'M images/mo ($' + cv.totalCostPer1MImg.toFixed(1) + ' w/ retrain)';
+
+    document.getElementById('cvKpiDataGravity').textContent = cv.dailyReadTB.toFixed(1) + ' TB/day';
+    document.getElementById('cvKpiHostSub').textContent =
+      'Est. Host Pool: ~' + fmtInt(cv.estHostVcpu) + ' vCPU / ' + fmtInt(cv.estHostRamGB) + ' GB RAM';
+
+    // Empirical Production Triage & Gotchas Box
+    var gotchasBox = document.getElementById('cvGotchasBox');
+    if (gotchasBox) {
+      gotchasBox.replaceChildren();
+      var items = [];
+      if (cv.archetype === 'siglip2_giant' || cv.archetype === 'hybrid_pipeline') {
+        items.push({
+          tone: 'amber',
+          title: 'Precision Gate — Lock FP32 on SigLIP2-Giant 384px Retrieval (~195 img/s/chip on TPU v6e):',
+          body: 'torch.compile(dynamic=False) delivers 3.4x speedup over eager on 1 TPU v6e chip (1 TensorCore = 1 device). Do NOT use BF16 for retrieval embeddings: BF16 passes synthetic random-tensor checks (min cos ~0.998) but degrades real-image nearest-neighbor recall (55/64 vs 63/64 in FP32). Keep static batch=8 (larger batches yield no gain and dynamic shapes retrigger compilation).'
+        });
+      }
+      if (cv.archetype === 'convnext_effnet' || cv.archetype === 'hybrid_pipeline') {
+        items.push({
+          tone: 'blue',
+          title: 'Host↔Device PCIe & Decode Bottleneck — ~2/3 of Step Time on Fast CNNs:',
+          body: 'On ConvNeXt-Tiny & EfficientNet-B0 (224px, BF16 torch.compile), 1 TPU v6e chip achieves ~2,020–2,285 img/s host-fed vs ~7,200 img/s device-resident (~67% host-transfer bound). Provision ample host vCPUs/RAM (~' + fmtInt(cv.estHostVcpu) + ' vCPUs / ' + fmtInt(cv.estHostRamGB) + ' GB RAM) and async prefetch queues, especially at ' + cv.imgMB + ' MB/img raw frames.'
+        });
+      }
+      if (cv.portableSku === 'tpuv6e' && cv.pAligned > 0) {
+        items.push({
+          tone: 'green',
+          title: 'Single-Chip Pod Isolation — Use ct6e-standard-1t Over Shared 8t Slices:',
+          body: 'On multi-chip ct6e-standard-8t hosts, a single Python process initializes the PJRT client across all 8 chips (blocking a 2nd independent process unless multi-threaded inside 1 process, where up to 7 FP32 SigLIP2 replicas fit in 32 GB HBM). Use ct6e-standard-1t (1 chip = 1 device) node pools for clean 1-pod-per-model K8s isolation.'
+        });
+      }
+      if (cv.portablePct < 100 || cv.archetype === 'custom_cuda_det') {
+        items.push({
+          tone: 'red',
+          title: 'CUDA Lock-In Isolation — Keep MMDetection / MMCV & Custom Point-Cloud Ops on 1-GPU G4 / L4:',
+          body: 'Object detectors using custom C++/CUDA ops (DeformConv, rotated RoIAlign, 3D voxelization) avoid costly XLA kernel rewrites by landing on single-GPU g4-standard-48 (1× RTX PRO 6000 96GB @ $1.33/hr 3Y CUD) or g2-standard-12 (1× L4 24GB).'
+        });
+      }
+      items.forEach(function (it) {
+        var palette = {
+          amber: 'p-3 rounded-lg bg-[#fef7e0] border border-[#feefc3] text-[#3c4043]',
+          blue: 'p-3 rounded-lg bg-[#e8f0fe] border border-[#d2e3fc] text-[#3c4043]',
+          green: 'p-3 rounded-lg bg-[#e6f4ea] border border-[#ceead6] text-[#3c4043]',
+          red: 'p-3 rounded-lg bg-[#fce8e6] border border-[#fad2cf] text-[#3c4043]'
+        }[it.tone];
+        var titleColor = {
+          amber: 'font-bold text-[#b06000] mb-0.5',
+          blue: 'font-bold text-[#174ea6] mb-0.5',
+          green: 'font-bold text-[#137333] mb-0.5',
+          red: 'font-bold text-[#c5221f] mb-0.5'
+        }[it.tone];
+        var box = createEl('div', palette);
+        box.appendChild(createEl('div', titleColor, it.title));
+        box.appendChild(createEl('div', 'leading-relaxed', it.body));
+        gotchasBox.appendChild(box);
+      });
+    }
+
+    // Cloud-to-Cloud Legacy GPU -> GCP Replacement Matrix
+    var leg = state.legacyFleet;
+    var totalLegacy = (leg.a10 || 0) + (leg.l40s || 0) + (leg.t4 || 0) + (leg.a100 || 0) + (leg.h100 || 0);
+    var legBadge = document.getElementById('cvLegacyTotalBadge');
+    if (legBadge) {
+      legBadge.textContent = totalLegacy + ' Source GPUs';
+    }
+    var legBody = document.getElementById('cvLegacyMapperTableBody');
+    if (legBody) {
+      legBody.replaceChildren();
+      var rows = [
+        {
+          sku: 'A10 / A10G (24 GB, 1 die)',
+          cnt: leg.a10 || 0,
+          gpuMap: (leg.a10 || 0) + '× L4 24GB (g2-std) or ' + Math.ceil((leg.a10 || 0) * 0.6) + '–' + (leg.a10 || 0) + '× G4 96GB (1-GPU)',
+          tpuMap: 'ct6e-standard-1t (1 Chip = 1 Dev, 32GB) if pure PyTorch',
+          path: 'Drop-In G4/L4 (CUDA) or v6e-1t'
+        },
+        {
+          sku: 'L40S (48 GB, 1 die)',
+          cnt: leg.l40s || 0,
+          gpuMap: (leg.l40s || 0) + '× G4 96GB (g4-standard-48 • 2x VRAM/GPU)',
+          tpuMap: 'ct6e-standard-1t (918 TF BF16) for ViT / Diffusion',
+          path: '1:1 G4 96GB (2x Memory Headroom)'
+        },
+        {
+          sku: 'T4 (16 GB, 1 die)',
+          cnt: leg.t4 || 0,
+          gpuMap: Math.ceil((leg.t4 || 0) * 0.5) + '–' + (leg.t4 || 0) + '× L4 24GB ($0.36/hr 3Y CUD)',
+          tpuMap: ' Consolidate onto 1–2× ct6e-standard-1t',
+          path: 'High-ROI L4 Consolidation'
+        },
+        {
+          sku: 'A100 40G/80G (1 die)',
+          cnt: leg.a100 || 0,
+          gpuMap: (leg.a100 || 0) + '× G4 96GB (1-GPU pod parity; ~8.5 vs ~10.1 det img/s)',
+          tpuMap: Math.max(1, Math.round((leg.a100 || 0) * (cv.portablePct / 100.0))) + '× TPU v6e-1t for ViT/CNN pods',
+          path: 'Split: G4 (MMDet) + TPU v6e (ViT)'
+        },
+        {
+          sku: 'H100 80GB (1 die)',
+          cnt: leg.h100 || 0,
+          gpuMap: (leg.h100 > 0 ? Math.ceil(leg.h100 / 8) * 8 + '× H100 (a3-mega) or ' + (leg.h100 * 2) + '× G4 96GB' : '0'),
+          tpuMap: 'ct6e-standard-4t/8t for PyTorch backbone training',
+          path: 'Retraining Pool (A3 Mega / DWS)'
+        }
+      ];
+      var shown = 0;
+      rows.forEach(function (r) {
+        if (r.cnt <= 0 && totalLegacy > 0) return;
+        shown++;
+        var tr = createEl('tr', '');
+        tr.appendChild(createEl('td', 'py-2 pr-2 font-sans font-bold text-[#202124]', r.sku));
+        tr.appendChild(createEl('td', 'py-2 px-2 text-right font-bold text-[#1a73e8]', String(r.cnt)));
+        tr.appendChild(createEl('td', 'py-2 px-2 font-sans', r.gpuMap));
+        tr.appendChild(createEl('td', 'py-2 px-2 font-sans text-[#137333]', r.tpuMap));
+        tr.appendChild(createEl('td', 'py-2 pl-2 text-right font-sans font-semibold', r.path));
+        legBody.appendChild(tr);
+      });
+      if (shown === 0) {
+        var emptyTr = createEl('tr', '');
+        var emptyTd = createEl('td', 'py-3 text-center font-sans text-[#5f6368]', 'Enter source AWS / Azure GPU counts on the left to generate a 1:1 migration plan.');
+        emptyTd.colSpan = 5;
+        emptyTr.appendChild(emptyTd);
+        legBody.appendChild(emptyTr);
+      }
+    }
+
+    // Cross-Platform CV Benchmark & $/1M Images Table
+    var cvCompBody = document.getElementById('cvPlatformCompTableBody');
+    if (cvCompBody) {
+      cvCompBody.replaceChildren();
+      var archObj = CV_EMPIRICAL_IMGS_PER_SEC[cv.archetype] || CV_EMPIRICAL_IMGS_PER_SEC.hybrid_pipeline;
+      ['tpuv6e', 'g4', 'l4', 'h100', 'tpu7x'].forEach(function (k) {
+        var hw = HARDWARE_CATALOG[k];
+        var isTpu = (k === 'tpuv6e' || k === 'tpu7x');
+        var rawImgSec = isTpu ? (archObj.portableRates[k] || 0) : (cv.archetype === 'custom_cuda_det' ? archObj.cudaRates[k] : archObj.portableRates[k]);
+        var zones = getRegionSkuZones(state.region, k);
+        var isAv = zones.length > 0;
+        var tr = createEl('tr', (k === cv.portableSku || k === cv.cudaSku) ? 'bg-[#e8f0fe]' : '');
+
+        var tdName = createEl('td', 'py-2 pr-2 font-sans');
+        tdName.appendChild(createEl('div', 'font-bold text-[#202124]', hw.shortName));
+        var zSub = createEl(
+          'div',
+          'text-[11px] font-mono ' + (isAv ? 'text-[#137333]' : 'text-[#c5221f]'),
+          getCvGranularSliceLabel(k) + ' • ' + (state.region === 'global' ? 'Global' : (isAv ? ('✓ ' + zones.join(',')) : '✗ Not in region'))
+        );
+        tdName.appendChild(zSub);
+        tr.appendChild(tdName);
+
+        if (rawImgSec <= 0) {
+          tr.appendChild(createEl('td', 'py-2 px-2 text-right text-[#c5221f]', 'CUDA-Locked'));
+          tr.appendChild(createEl('td', 'py-2 px-2 text-right text-[#5f6368]', 'N/A (Custom Ops)'));
+          tr.appendChild(createEl('td', 'py-2 px-2 text-right text-[#5f6368]', '—'));
+          tr.appendChild(createEl('td', 'py-2 pl-2 text-right text-[#5f6368]', 'Use G4 / L4'));
+        } else {
+          var effRate = rawImgSec * 0.85;
+          var packFactor = state.cvPackModels ? 3 : 1;
+          var depFloor = Math.max(1, Math.ceil(state.cvDeployments / packFactor));
+          var neededDevs = alignCvDevices(k, Math.max(Math.ceil(cv.peakImgSec / effRate), depFloor));
+          var hr = hw.pricing[state.pricingBasis] || hw.pricing.cud3y;
+          var moCost = neededDevs * hr * HOURS_PER_MONTH;
+          var per1M = moCost / Math.max(0.01, cv.monthlyImagesMillions);
+
+          tr.appendChild(createEl('td', 'py-2 px-2 text-right', (rawImgSec >= 20 ? fmtInt(rawImgSec) : rawImgSec.toFixed(1)) + ' img/s'));
+          tr.appendChild(createEl('td', 'py-2 px-2 text-right font-bold text-[#1a73e8]', neededDevs + (isTpu ? ' devs' : ' GPUs')));
+          tr.appendChild(createEl('td', 'py-2 px-2 text-right', fmtMoneyK(moCost) + '/mo'));
+          tr.appendChild(createEl('td', 'py-2 pl-2 text-right font-bold text-[#188038]', '$' + per1M.toFixed(1)));
+        }
+        cvCompBody.appendChild(tr);
+      });
+    }
+
+    // Generate CCA Capacity Request Summary OR GKE Hybrid Terraform
+    var preEl = document.getElementById('cvTerraformPre');
+    if (preEl) {
+      var pZoneHint = pZones.length > 0 && pZones[0] !== 'all' ? (state.region + '-' + pZones[0]) : (state.region === 'global' ? 'asia-southeast1-b' : state.region + '-b');
+      var cZoneHint = cZones.length > 0 && cZones[0] !== 'all' ? (state.region + '-' + cZones[0]) : (state.region === 'global' ? 'asia-southeast1-a' : state.region + '-a');
+      if (state.cvExportMode === 'cca') {
+        var ccaLines = [
+          '# Regional Accelerator Capacity & Architecture Brief (CCA Ready)',
+          'Target Region:        ' + state.region + ' (Data Residency Enforced; Daily Read ~' + cv.dailyReadTB.toFixed(1) + ' TB/day)',
+          'Workload Profile:     Queue-driven Batch CV (' + cv.dailyM.toFixed(1) + 'M new/day + ' + cv.rerunM.toFixed(1) + 'M re-runs/mo = ' + cv.monthlyImagesMillions.toFixed(1) + 'M images/mo)',
+          'Source Cloud Fleet:   ' + totalLegacy + ' GPUs (' + (leg.a10 || 0) + '× A10/A10G, ' + (leg.l40s || 0) + '× L40S, ' + (leg.t4 || 0) + '× T4, ' + (leg.a100 || 0) + '× A100, ' + (leg.h100 || 0) + '× H100)',
+          '',
+          'Recommended Google Cloud Hybrid Target (' + state.pricingBasis.toUpperCase() + '):',
+          (cv.pAligned > 0
+            ? '  1. Portable PyTorch CV Pool: ' + cv.pAligned + '× ' + cv.pHw.shortName + ' [' + getCvGranularSliceLabel(cv.portableSku) + ' in ' + pZoneHint + ']'
+            : '  1. Portable PyTorch CV Pool: 0 (100% routed to CUDA GPU pool)'),
+          (cv.cAligned > 0
+            ? '  2. CUDA-Locked Detector Pool: ' + cv.cAligned + '× ' + cv.cHw.shortName + ' [' + getCvGranularSliceLabel(cv.cudaSku) + ' in ' + cZoneHint + ']'
+            : '  2. CUDA-Locked Detector Pool: 0 (100% portable PyTorch on TPU v6e)'),
+          (cv.retrainHrs > 0
+            ? '  3. Retraining Pool:          ' + fmtInt(cv.retrainHrs) + ' GPU-hrs/mo (~' + cv.retrainAvgDevs + ' continuous ' + cv.retrainHw.shortName + ' via DWS / CUD)'
+            : '  3. Retraining Pool:          None requested'),
+          '  4. Companion Host Workers:   ~' + fmtInt(cv.estHostVcpu) + ' vCPUs / ' + fmtInt(cv.estHostRamGB) + ' GB RAM for image decode & message-queue workers',
+          '',
+          'Estimated Spend:      ' + fmtMoneyK(cv.totalMonthlyCost) + '/mo total (' + fmtMoneyK(cv.infMonthlyCost) + '/mo inf = $' + cv.infCostPer1MImg.toFixed(1) + ' / 1M images)'
+        ];
+        preEl.textContent = ccaLines.join('\n');
+      } else {
+        var tfBlocks = [];
+        if (cv.pAligned > 0 && cv.portableSku === 'tpuv6e') {
+          tfBlocks.push([
+            '# 1. Single-Chip Cloud TPU v6e NodePool (1 Chip = 1 Device = 32GB HBM for isolated PyTorch CV pods)',
+            'resource "google_container_node_pool" "cv_tpuv6e_1t_pool" {',
+            '  name       = "cv-tpuv6e-1t-pool"',
+            '  location   = "' + pZoneHint + '"',
+            '  cluster    = google_container_cluster.cv_cluster.name',
+            '  node_count = ' + cv.pAligned,
+            '',
+            '  node_config {',
+            '    machine_type = "ct6e-standard-1t"',
+            '    gvnic { enabled = true }',
+            '  }',
+            '}'
+          ].join('\n'));
+        }
+        if (cv.cAligned > 0) {
+          var cMach = cv.cudaSku === 'g4' ? 'g4-standard-48' : (cv.cudaSku === 'l4' ? 'g2-standard-12' : 'a3-megagpu-8g');
+          var cNodes = (cv.cudaSku === 'g4' || cv.cudaSku === 'l4') ? cv.cAligned : Math.ceil(cv.cAligned / 8);
+          tfBlocks.push([
+            '# 2. Single-GPU CUDA NodePool (MMDetection / MMCV & Custom Point-Cloud Ops)',
+            'resource "google_container_node_pool" "cv_cuda_gpu_pool" {',
+            '  name       = "cv-' + cv.cudaSku + '-cuda-pool"',
+            '  location   = "' + cZoneHint + '"',
+            '  cluster    = google_container_cluster.cv_cluster.name',
+            '  node_count = ' + cNodes,
+            '',
+            '  node_config {',
+            '    machine_type = "' + cMach + '"',
+            '    gvnic { enabled = true }',
+            '  }',
+            '}'
+          ].join('\n'));
+        }
+        preEl.textContent = tfBlocks.join('\n\n') || '# Increase Portable or CUDA share above 0 to generate GKE NodePool HCL.';
+      }
+    }
+  }
+
+  function applyCvPreset(presetKey) {
+    var p = CV_PRESETS[presetKey];
+    if (!p) return;
+    state.activeCvPreset = presetKey;
+    state.cvDailyMillions = p.dailyMillions;
+    state.cvRerunMillions = p.rerunMillions;
+    state.cvImgSizeMB = p.imgSizeMB;
+    state.cvPeakFactor = p.peakFactor;
+    state.cvArchetype = p.archetype;
+    state.cvPortablePct = p.portablePct;
+    state.cvPortableSku = p.portableSku;
+    state.cvCudaSku = p.cudaSku;
+    state.cvDeployments = p.deployments;
+    state.cvRetrainHrs = p.retrainHrs;
+    state.cvPackModels = !!p.packModels;
+    state.legacyFleet = {
+      a10: p.legacy.a10,
+      l40s: p.legacy.l40s,
+      t4: p.legacy.t4,
+      a100: p.legacy.a100,
+      h100: p.legacy.h100
+    };
+    syncControlsFromState();
+    renderOverview();
+    renderVisionCockpit();
+  }
+
   function applyPreset(presetKey) {
     var p = WORKLOAD_PRESETS[presetKey];
     if (!p) return;
@@ -1920,6 +2570,8 @@
     if (ovRegSel) ovRegSel.value = state.region;
     var infRegSel = document.getElementById('infRegionSelect');
     if (infRegSel) infRegSel.value = state.region;
+    var cvRegSel = document.getElementById('cvRegionSelect');
+    if (cvRegSel) cvRegSel.value = state.region;
     var recRegSel = document.getElementById('recSelectRegion');
     if (recRegSel) recRegSel.value = state.recRegion;
 
@@ -1997,6 +2649,91 @@
         btn.className = 'preset-btn px-3 py-1 rounded-md text-xs font-medium border border-[#dadce0] bg-white text-[#3c4043] hover:border-[#1a73e8] transition';
       }
     });
+
+    // Vision / CV Controls Sync
+    var cvDailyEl = document.getElementById('cvInpDailyMillions');
+    if (cvDailyEl && document.activeElement !== cvDailyEl) cvDailyEl.value = state.cvDailyMillions;
+    var cvRerunEl = document.getElementById('cvInpRerunMillions');
+    if (cvRerunEl && document.activeElement !== cvRerunEl) cvRerunEl.value = state.cvRerunMillions;
+    var cvImgEl = document.getElementById('cvInpImgSizeMB');
+    if (cvImgEl && document.activeElement !== cvImgEl) cvImgEl.value = state.cvImgSizeMB;
+    var cvPeakEl = document.getElementById('cvInpPeakFactor');
+    if (cvPeakEl && document.activeElement !== cvPeakEl) cvPeakEl.value = state.cvPeakFactor;
+    var cvArchEl = document.getElementById('cvModelArchetypeSelect');
+    if (cvArchEl) cvArchEl.value = state.cvArchetype;
+    var cvPortSlider = document.getElementById('cvSliderPortablePct');
+    if (cvPortSlider) cvPortSlider.value = state.cvPortablePct;
+    var cvPortSkuEl = document.getElementById('cvSelectPortableSku');
+    if (cvPortSkuEl) cvPortSkuEl.value = state.cvPortableSku;
+    var cvCudaSkuEl = document.getElementById('cvSelectCudaSku');
+    if (cvCudaSkuEl) cvCudaSkuEl.value = state.cvCudaSku;
+    var cvDepEl = document.getElementById('cvInpDeployments');
+    if (cvDepEl && document.activeElement !== cvDepEl) cvDepEl.value = state.cvDeployments;
+    var cvRetEl = document.getElementById('cvInpRetrainHrs');
+    if (cvRetEl && document.activeElement !== cvRetEl) cvRetEl.value = state.cvRetrainHrs;
+
+    var packBtn = document.getElementById('cvBtnPackToggle');
+    if (packBtn) {
+      packBtn.setAttribute('aria-pressed', state.cvPackModels ? 'true' : 'false');
+      packBtn.textContent = state.cvPackModels ? 'On (~3 Models/Dev)' : 'Off (1 Pod=1 Dev)';
+      packBtn.className = state.cvPackModels
+        ? 'px-2.5 py-1 rounded font-mono font-bold bg-[#e6f4ea] text-[#137333] border border-[#188038] cursor-pointer transition'
+        : 'px-2.5 py-1 rounded font-mono font-bold bg-white text-[#5f6368] border border-[#dadce0] cursor-pointer transition';
+    }
+
+    var legMap = { legInpA10: 'a10', legInpL40s: 'l40s', legInpT4: 't4', legInpA100: 'a100', legInpH100: 'h100' };
+    Object.keys(legMap).forEach(function (elId) {
+      var inp = document.getElementById(elId);
+      if (inp && document.activeElement !== inp) {
+        inp.value = state.legacyFleet[legMap[elId]] || 0;
+      }
+    });
+
+    document.querySelectorAll('.cv-preset-btn').forEach(function (btn) {
+      if (btn.getAttribute('data-cv-preset') === state.activeCvPreset) {
+        btn.className = 'cv-preset-btn px-3 py-1 rounded-md text-xs font-bold border border-[#1a73e8] bg-[#e8f0fe] text-[#202124] transition';
+      } else {
+        btn.className = 'cv-preset-btn px-3 py-1 rounded-md text-xs font-medium border border-[#dadce0] bg-white text-[#3c4043] hover:border-[#1a73e8] transition';
+      }
+    });
+  }
+
+  function switchCockpitDomain(domain) {
+    state.cockpitDomain = domain;
+    var infC = document.getElementById('inferenceViewContainer');
+    var trC = document.getElementById('trainingViewContainer');
+    var cvC = document.getElementById('visionViewContainer');
+    var bInf = document.getElementById('modeBtnInference');
+    var bTr = document.getElementById('modeBtnTraining');
+    var bCv = document.getElementById('modeBtnVision');
+    var llmPresets = document.getElementById('cockpitPresetButtons');
+    var cvPresets = document.getElementById('cvPresetButtons');
+    var subLbl = document.getElementById('cockpitDomainSubtitle');
+    var pLbl = document.getElementById('cockpitPresetsLabel');
+
+    var actCls = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg text-sm font-bold transition bg-[#e8f0fe] text-[#202124] shadow-xs border border-[#1a73e8]';
+    var inactCls = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg text-sm font-bold transition bg-white text-[#5f6368] hover:text-[#202124] border border-[#dadce0] hover:border-[#1a73e8]';
+
+    if (infC) infC.classList.toggle('hidden', domain !== 'inference');
+    if (trC) trC.classList.toggle('hidden', domain !== 'training');
+    if (cvC) cvC.classList.toggle('hidden', domain !== 'vision');
+
+    if (bInf) bInf.className = domain === 'inference' ? actCls : inactCls;
+    if (bTr) bTr.className = domain === 'training' ? actCls : inactCls;
+    if (bCv) bCv.className = domain === 'vision' ? actCls : inactCls;
+
+    if (llmPresets && cvPresets) {
+      llmPresets.classList.toggle('hidden', domain === 'vision');
+      cvPresets.classList.toggle('hidden', domain !== 'vision');
+    }
+    if (pLbl) {
+      pLbl.textContent = domain === 'vision' ? 'Vision & Migration Presets:' : 'Workload Presets:';
+    }
+    if (subLbl) {
+      subLbl.textContent = domain === 'vision'
+        ? '1-GPU / 1-Chip Granular Slices • TPU v6e torch.compile + Legacy Cloud Mapper'
+        : '8-GPU VM Node Alignment • Disaggregated llm-d & Continuous Batching';
+    }
   }
 
   function switchPersonaView(view) {
@@ -2049,6 +2786,9 @@
 
     document.getElementById('btnOverviewToCockpit').addEventListener('click', function () {
       switchPersonaView('cockpit');
+      if (state.overviewTier === 'vision_cv') {
+        switchCockpitDomain('vision');
+      }
     });
 
     // Dark / Light Theme Toggle
@@ -2107,7 +2847,11 @@
         } else {
           state.overviewLens = 'serving';
         }
-        applyPreset(OVERVIEW_TIERS[tier].presetKey);
+        if (OVERVIEW_TIERS[tier].isVisionCv) {
+          applyCvPreset(OVERVIEW_TIERS[tier].cvPresetKey);
+        } else {
+          applyPreset(OVERVIEW_TIERS[tier].presetKey);
+        }
       });
     });
 
@@ -2142,6 +2886,7 @@
         renderOverview();
         renderRecommender();
         renderCockpit();
+        renderVisionCockpit();
       });
     });
 
@@ -2149,9 +2894,12 @@
       state.region = e.target.value;
       var infReg = document.getElementById('infRegionSelect');
       if (infReg) infReg.value = state.region;
+      var cvReg = document.getElementById('cvRegionSelect');
+      if (cvReg) cvReg.value = state.region;
       renderOverview();
       renderCockpit();
       renderTrainingCockpit();
+      renderVisionCockpit();
     });
 
     var infRegSelect = document.getElementById('infRegionSelect');
@@ -2160,9 +2908,27 @@
         state.region = e.target.value;
         var ovReg = document.getElementById('ovRegionSelect');
         if (ovReg) ovReg.value = state.region;
+        var cvReg = document.getElementById('cvRegionSelect');
+        if (cvReg) cvReg.value = state.region;
         renderOverview();
         renderCockpit();
         renderTrainingCockpit();
+        renderVisionCockpit();
+      });
+    }
+
+    var cvRegSelect = document.getElementById('cvRegionSelect');
+    if (cvRegSelect) {
+      cvRegSelect.addEventListener('change', function (e) {
+        state.region = e.target.value;
+        var ovReg = document.getElementById('ovRegionSelect');
+        if (ovReg) ovReg.value = state.region;
+        var infReg = document.getElementById('infRegionSelect');
+        if (infReg) infReg.value = state.region;
+        renderOverview();
+        renderCockpit();
+        renderTrainingCockpit();
+        renderVisionCockpit();
       });
     }
 
@@ -2283,7 +3049,15 @@
         if (state.recRegion && state.recRegion !== 'global') {
           state.region = state.recRegion;
         }
-        if (state.recWorkload === 'pretrain' || state.recWorkload === 'posttrain') {
+        if (state.recWorkload === 'cv_batch') {
+          state.cvCudaSku = targetKey === 'l4' ? 'l4' : (targetKey === 'h100' ? 'h100' : 'g4');
+          state.cvPortableSku = 'tpuv6e';
+          syncControlsFromState();
+          renderOverview();
+          renderVisionCockpit();
+          switchPersonaView('cockpit');
+          switchCockpitDomain('vision');
+        } else if (state.recWorkload === 'pretrain' || state.recWorkload === 'posttrain') {
           state.trGpu = HARDWARE_CATALOG[targetKey] && targetKey !== 'l4' ? targetKey : 'b200';
           state.trParamsB = prof.totalParamsB;
           state.trTokensT = state.recWorkload === 'posttrain' ? 0.15 : prof.trTokensT;
@@ -2295,7 +3069,7 @@
           renderOverview();
           renderTrainingCockpit();
           switchPersonaView('cockpit');
-          document.getElementById('modeBtnTraining').click();
+          switchCockpitDomain('training');
         } else {
           state.sku = targetKey;
           state.arch = prof.arch;
@@ -2312,30 +3086,38 @@
           renderOverview();
           renderCockpit();
           switchPersonaView('cockpit');
-          document.getElementById('modeBtnInference').click();
+          switchCockpitDomain('inference');
         }
       });
     }
 
-    // Cockpit Domain Switcher (Inference vs Training)
+    // Cockpit Domain Switcher (Inference vs Training vs Vision/CV)
     document.getElementById('modeBtnInference').addEventListener('click', function () {
-      document.getElementById('inferenceViewContainer').classList.remove('hidden');
-      document.getElementById('trainingViewContainer').classList.add('hidden');
-      document.getElementById('modeBtnInference').className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg text-sm font-bold transition bg-[#e8f0fe] text-[#202124] shadow-xs border border-[#1a73e8]';
-      document.getElementById('modeBtnTraining').className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg text-sm font-bold transition bg-white text-[#5f6368] hover:text-[#202124] border border-[#dadce0] hover:border-[#1a73e8]';
+      switchCockpitDomain('inference');
     });
 
     document.getElementById('modeBtnTraining').addEventListener('click', function () {
-      document.getElementById('inferenceViewContainer').classList.add('hidden');
-      document.getElementById('trainingViewContainer').classList.remove('hidden');
-      document.getElementById('modeBtnTraining').className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg text-sm font-bold transition bg-[#e8f0fe] text-[#202124] shadow-xs border border-[#1a73e8]';
-      document.getElementById('modeBtnInference').className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg text-sm font-bold transition bg-white text-[#5f6368] hover:text-[#202124] border border-[#dadce0] hover:border-[#1a73e8]';
+      switchCockpitDomain('training');
     });
+
+    var modeBtnVision = document.getElementById('modeBtnVision');
+    if (modeBtnVision) {
+      modeBtnVision.addEventListener('click', function () {
+        switchCockpitDomain('vision');
+        renderVisionCockpit();
+      });
+    }
 
     // Cockpit Preset Buttons
     document.querySelectorAll('.preset-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         applyPreset(btn.getAttribute('data-preset'));
+      });
+    });
+
+    document.querySelectorAll('.cv-preset-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        applyCvPreset(btn.getAttribute('data-cv-preset'));
       });
     });
 
@@ -2603,6 +3385,139 @@
         setTimeout(function () { btn.textContent = 'Copy Terraform'; }, 1500);
       }
     });
+
+    // Vision / CV & Legacy Fleet Migration Cockpit Events
+    function bindCvNumber(id, prop, minVal, maxVal, fallback) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', function (e) {
+        var v = parseFloat(e.target.value);
+        if (isNaN(v)) v = fallback;
+        v = Math.max(minVal, Math.min(maxVal, v));
+        state[prop] = v;
+        renderOverview();
+        renderVisionCockpit();
+      });
+    }
+    bindCvNumber('cvInpDailyMillions', 'cvDailyMillions', 0.01, 5000, 1.5);
+    bindCvNumber('cvInpRerunMillions', 'cvRerunMillions', 0, 10000, 20);
+    bindCvNumber('cvInpImgSizeMB', 'cvImgSizeMB', 0.1, 500, 20);
+    bindCvNumber('cvInpPeakFactor', 'cvPeakFactor', 1.0, 10.0, 1.6);
+    bindCvNumber('cvInpDeployments', 'cvDeployments', 1, 500, 25);
+    bindCvNumber('cvInpRetrainHrs', 'cvRetrainHrs', 0, 200000, 4380);
+
+    var cvArchSel = document.getElementById('cvModelArchetypeSelect');
+    if (cvArchSel) {
+      cvArchSel.addEventListener('change', function (e) {
+        state.cvArchetype = e.target.value;
+        if (state.cvArchetype === 'custom_cuda_det') {
+          state.cvPortablePct = 0;
+        } else if (state.cvArchetype === 'siglip2_giant' || state.cvArchetype === 'convnext_effnet') {
+          state.cvPortablePct = 100;
+        } else if (state.cvPortablePct === 0 || state.cvPortablePct === 100) {
+          state.cvPortablePct = 40;
+        }
+        syncControlsFromState();
+        renderOverview();
+        renderVisionCockpit();
+      });
+    }
+
+    var cvPortSliderEl = document.getElementById('cvSliderPortablePct');
+    if (cvPortSliderEl) {
+      cvPortSliderEl.addEventListener('input', function (e) {
+        state.cvPortablePct = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0));
+        renderOverview();
+        renderVisionCockpit();
+      });
+    }
+
+    var cvPortSkuSel = document.getElementById('cvSelectPortableSku');
+    if (cvPortSkuSel) {
+      cvPortSkuSel.addEventListener('change', function (e) {
+        state.cvPortableSku = e.target.value;
+        renderOverview();
+        renderVisionCockpit();
+      });
+    }
+
+    var cvCudaSkuSel = document.getElementById('cvSelectCudaSku');
+    if (cvCudaSkuSel) {
+      cvCudaSkuSel.addEventListener('change', function (e) {
+        state.cvCudaSku = e.target.value;
+        renderOverview();
+        renderVisionCockpit();
+      });
+    }
+
+    var cvPackBtn = document.getElementById('cvBtnPackToggle');
+    if (cvPackBtn) {
+      cvPackBtn.addEventListener('click', function () {
+        state.cvPackModels = !state.cvPackModels;
+        syncControlsFromState();
+        renderOverview();
+        renderVisionCockpit();
+      });
+    }
+
+    var legBindings = [
+      ['legInpA10', 'a10'],
+      ['legInpL40s', 'l40s'],
+      ['legInpT4', 't4'],
+      ['legInpA100', 'a100'],
+      ['legInpH100', 'h100']
+    ];
+    legBindings.forEach(function (pair) {
+      var el = document.getElementById(pair[0]);
+      if (!el) return;
+      el.addEventListener('input', function (e) {
+        var val = Math.max(0, Math.min(10000, parseInt(e.target.value, 10) || 0));
+        state.legacyFleet[pair[1]] = val;
+        renderVisionCockpit();
+      });
+    });
+
+    var btnSyncLeg = document.getElementById('cvBtnSyncLegacyFloor');
+    if (btnSyncLeg) {
+      btnSyncLeg.addEventListener('click', function () {
+        var lf = state.legacyFleet;
+        var infSourceGpus = Math.max(1, (lf.a10 || 0) + (lf.l40s || 0) + (lf.t4 || 0) + (lf.a100 || 0));
+        state.cvDeployments = infSourceGpus;
+        state.cvRetrainHrs = Math.round((lf.h100 || 0) * HOURS_PER_MONTH);
+        syncControlsFromState();
+        renderOverview();
+        renderVisionCockpit();
+      });
+    }
+
+    var btnExpCca = document.getElementById('cvExportModeCca');
+    var btnExpTf = document.getElementById('cvExportModeTf');
+    if (btnExpCca && btnExpTf) {
+      btnExpCca.addEventListener('click', function () {
+        state.cvExportMode = 'cca';
+        btnExpCca.className = 'px-2.5 py-1 rounded bg-[#e8f0fe] text-[#174ea6] border border-[#1a73e8] text-xs font-mono font-bold transition cursor-pointer';
+        btnExpTf.className = 'px-2.5 py-1 rounded bg-white text-[#5f6368] border border-[#dadce0] hover:border-[#1a73e8] text-xs font-mono font-bold transition cursor-pointer';
+        renderVisionCockpit();
+      });
+      btnExpTf.addEventListener('click', function () {
+        state.cvExportMode = 'tf';
+        btnExpTf.className = 'px-2.5 py-1 rounded bg-[#e8f0fe] text-[#174ea6] border border-[#1a73e8] text-xs font-mono font-bold transition cursor-pointer';
+        btnExpCca.className = 'px-2.5 py-1 rounded bg-white text-[#5f6368] border border-[#dadce0] hover:border-[#1a73e8] text-xs font-mono font-bold transition cursor-pointer';
+        renderVisionCockpit();
+      });
+    }
+
+    var btnCopyCv = document.getElementById('btnCopyCvExport');
+    if (btnCopyCv) {
+      btnCopyCv.addEventListener('click', function () {
+        var code = document.getElementById('cvTerraformPre').textContent;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code);
+          btnCopyCv.textContent = 'Copied!';
+          setTimeout(function () { btnCopyCv.textContent = 'Copy'; }, 1500);
+        }
+      });
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -2615,5 +3530,6 @@
     renderRecommender();
     renderCockpit();
     renderTrainingCockpit();
+    renderVisionCockpit();
   });
 })();
