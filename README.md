@@ -34,11 +34,23 @@ An interactive **AI Infrastructure Sizing, Silicon Recommender & Unit Economics 
   - Computes total training FLOPs, cluster duration, GPU-days, ZeRO-3 / FSDP HBM footprint, and **GKE NodePool Terraform**.
 - **Domain C — Vision / CV & Legacy Cloud Fleet Migration Sizing (`Img/s` + Legacy GPU Mapper)**:
   - **Batch CV & Data Gravity Physics**: Sizes queue-driven visual pipelines from `Daily New Images + Monthly Re-runs`, `Raw Payload (MB/img -> TB/day read)`, K8s microservice deployment count (1-GPU / 1-Chip granular slices vs. multi-model MPS packing), and monthly retraining GPU-hours, outputting **`$/1M Images`** unit economics.
-  - **Empirical `TPU v6e` & GPU Benchmark Anchors + Production Triage**:
-    - `SigLIP2-Giant 384px` (`~195 img/s/chip` on `TPU v6e` with `FP32 + torch.compile(dynamic=False)`; flags `BF16` real-image retrieval recall degradation).
-    - `ConvNeXt-Tiny / EfficientNet-B0 224px` (`~2,020–2,285 img/s/chip` in `BF16`; flags `~67%` Host↔Device PCIe & CPU decode bottleneck).
-    - `Custom-CUDA Detectors (MMDetection / MMCV / LiDAR)` isolated onto single-GPU `g4-standard-48` (`96 GB`) or `g2-standard` (`L4 24 GB`) VMs, while standard PyTorch CV pods target `ct6e-standard-1t` single-chip slices for clean PJRT process isolation.
-  - **Cloud-to-Cloud Legacy GPU Migration Mapper**: Maps source AWS / Azure fleets (`A10/A10G`, `L40S`, `T4`, `A100`, `H100`) to die-aligned GCP GPU & TPU replacements, exporting ready-to-paste **CCA Capacity Briefs** and **GKE Hybrid NodePool Terraform**.
+  - **Empirical `TPU v6e` vs. Single-GPU (`G4` / `H100` / `A100`) Benchmark Anchors + Production Triage** (`torch.compile(dynamic=False)`, `batch=8`, host-fed, verified on 64 real COCO images; 1 `TPU v6e` chip = 1 device vs. 1 single-die GPU):
+    - **Heavy Vision Transformer (`SigLIP2-Giant 384px`, 1.16B)**: `TPU v6e` leads at **`~195 img/s` (`FP32`, `63/64` recall)** vs. **`~133 img/s` (`H100`)**, **`~87 img/s` (`G4`)**, and **`~58 img/s` (`A100 80GB`)** with `FP32 + TF32` (`64/64` recall). `BF16` degrades real-image retrieval recall (`55–56/64`) on **both** GPU and TPU; PyTorch also defaults `cuda.matmul.allow_tf32=False` (`13–33 img/s` trap until `TF32` is enabled). XProf on `TPU v6e` confirms **`84.7%` pure device compute** (`86%` duty cycle, `4.61 GiB` peak HBM).
+    - **Light CNN Classifiers (`ConvNeXt-Tiny` & `EfficientNet-B0 224px`, `BF16`, `62–63/64` top-1)**: Single-GPU **`G4` (`g4-standard-48`) leads at `4,854–5,520 img/s`**, ahead of **`H100` (`2,371–3,782`)**, **`TPU v6e` (`1,829–2,285`)**, and **`A100 80GB` (`1,203–1,911`)**, with ~2/3 of step time governed by Host↔Device PCIe transfer & CPU image decode.
+    - **Custom-CUDA Detectors & Host Physical-Core Parity**: Isolates `MMDetection / MMCV` & 3D point-cloud ops onto single-GPU `g4-standard-48` (`96 GB`, `48 vCPU = 24 physical Turin cores` — matching 24 non-SMT physical cores on Azure `Standard_NC24ads_A100_v4`, whereas `a2-ultragpu-1g` has only `12 vCPU = 6 physical cores`), while standard PyTorch ViT pods target `ct6e-standard-1t` single-chip slices.
+  - **Cloud-to-Cloud Legacy GPU Migration Mapper**: Maps source AWS / Azure fleets (`A10/A10G`, `L40S`, `T4`, `A100`, `H100`) to die-aligned GCP GPU & TPU replacements (including `a3-highgpu-1g/2g/4g/8g` + DWS for retraining), exporting ready-to-paste **CCA Capacity Briefs** and **GKE Hybrid NodePool Terraform**.
+
+---
+
+## Verified Single-Device CV Benchmark Reference (`batch=8`, `torch.compile`, Host-Fed)
+
+All four accelerators below are single-die (`1 TPU v6e chip = 1 TensorCore = 1 device` vs. `1 GPU`), measured at `batch=8` with host-to-device input transfer and device-to-host output copy per step, and validated against a CPU `FP32` reference on 64 real COCO images:
+
+| Model (`image_size`) | Recall-Admissible Precision | Cloud TPU v6e (`1t`) | RTX PRO 6000 G4 (`1g`) | NVIDIA H100 80GB (`1g`) | NVIDIA A100 80GB (`1g`) |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **`SigLIP2-Giant` (`384px`)** | TPU `FP32` / GPU `FP32+TF32` (`63–64/64` NN) | **193–197 img/s** | 87 img/s | 133 img/s | 58 img/s |
+| **`ConvNeXt-Tiny` (`224px`)** | `BF16` (`63/64` top-1) | 2,004–2,285 img/s | **5,334–5,520 img/s** | 3,726–3,782 img/s | 1,872–1,911 img/s |
+| **`EfficientNet-B0` (`224px`)** | `BF16` (`62–63/64` top-1) | 1,829–2,201 img/s | **4,854–4,882 img/s** | 2,371–2,463 img/s | 1,203–1,232 img/s |
 
 ---
 

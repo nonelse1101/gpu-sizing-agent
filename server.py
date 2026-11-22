@@ -14,8 +14,29 @@ STATIC_DIR = os.path.dirname(os.path.abspath(__file__))
 CATALOG_SUMMARY = {
     "status": "ok",
     "service": "gpu-sizing-agent",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "verified_gcp_regions_count": 43,
+    "cv_empirical_benchmarks_batch8_compiled": {
+        "siglip2_giant_384px_recall_verified": {
+            "precision_note": "BF16 degrades 64-image COCO retrieval recall (55-56/64) on both GPU and TPU; use FP32 on TPU v6e and FP32+TF32 on GPU (63-64/64 recall).",
+            "tpuv6e_1t_fp32": 195,
+            "h100_1g_tf32": 133,
+            "g4_1g_tf32": 87,
+            "a100_80g_1g_tf32": 58,
+        },
+        "convnext_tiny_224px_bf16": {
+            "g4_1g": 5427,
+            "h100_1g": 3754,
+            "tpuv6e_1t": 2145,
+            "a100_80g_1g": 1892,
+        },
+        "efficientnet_b0_224px_bf16": {
+            "g4_1g": 4868,
+            "h100_1g": 2417,
+            "tpuv6e_1t": 2015,
+            "a100_80g_1g": 1218,
+        },
+    },
     "pitch_decks": {
         "portfolio": [
             {"label": "go/ai-infra-pitch", "url": "https://goto.google.com/ai-infra-pitch"},

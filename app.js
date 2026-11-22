@@ -393,17 +393,17 @@
     }
   };
 
-  // Empirical Host-Fed CV Throughput Anchors (images/sec per single GPU or single TPU device, batch=8)
+  // Empirical Host-Fed CV Throughput Anchors (images/sec per single GPU or single TPU v6e chip, batch=8, torch.compile, 64-image COCO parity verified)
   var CV_EMPIRICAL_IMGS_PER_SEC = {
     siglip2_giant: {
-      label: 'SigLIP2-Giant 384px (1.16B, FP32 Retrieval)',
-      portableRates: { tpuv6e: 195, g4: 180, l4: 55, h100: 360, h200: 390, b200: 680, tpu7x: 420 },
-      cudaRates: { g4: 180, l4: 55, h100: 360, h200: 390, b200: 680 }
+      label: 'SigLIP2-Giant 384px (1.16B • TPU FP32 vs GPU TF32, 63-64/64 Recall)',
+      portableRates: { tpuv6e: 195, g4: 87, l4: 32, h100: 133, h200: 145, b200: 260, tpu7x: 420 },
+      cudaRates: { g4: 87, l4: 32, h100: 133, h200: 145, b200: 260 }
     },
     convnext_effnet: {
-      label: 'ConvNeXt-Tiny / EfficientNet-B0 224px (BF16)',
-      portableRates: { tpuv6e: 2080, g4: 1750, l4: 680, h100: 3100, h200: 3300, b200: 4800, tpu7x: 3400 },
-      cudaRates: { g4: 1750, l4: 680, h100: 3100, h200: 3300, b200: 4800 }
+      label: 'ConvNeXt-Tiny / EfficientNet-B0 224px (BF16 • 62-63/64 Top-1)',
+      portableRates: { tpuv6e: 2080, g4: 5150, l4: 1350, h100: 3100, h200: 3300, b200: 5600, tpu7x: 3400 },
+      cudaRates: { g4: 5150, l4: 1350, h100: 3100, h200: 3300, b200: 5600 }
     },
     custom_cuda_det: {
       label: 'Custom-CUDA Detector / 3D Point-Cloud (MMDetection/MMCV)',
@@ -411,8 +411,8 @@
       cudaRates: { g4: 8.5, l4: 2.8, h100: 18.5, h200: 20.0, b200: 34.0 }
     },
     hybrid_pipeline: {
-      label: 'Mixed CV Pipeline (ViT/CNN + Custom-CUDA Detectors)',
-      portableRates: { tpuv6e: 420, g4: 380, l4: 140, h100: 760, h200: 820, b200: 1350, tpu7x: 880 },
+      label: 'Mixed CV Pipeline (ViT Encoders + CNNs + Custom-CUDA Detectors)',
+      portableRates: { tpuv6e: 355, g4: 170, l4: 62, h100: 255, h200: 278, b200: 495, tpu7x: 745 },
       cudaRates: { g4: 8.5, l4: 2.8, h100: 18.5, h200: 20.0, b200: 34.0 }
     }
   };
@@ -1044,13 +1044,21 @@
     if (skuKey === 'g4' || skuKey === 'l4' || skuKey === 'tpuv6e') {
       return Math.ceil(rawDevs);
     }
+    if (skuKey === 'h100') {
+      var n = Math.ceil(rawDevs);
+      if (n <= 1) return 1;
+      if (n <= 2) return 2;
+      if (n <= 4) return 4;
+      return Math.ceil(n / 8) * 8;
+    }
     return Math.ceil(rawDevs / 8) * 8;
   }
 
   function getCvGranularSliceLabel(skuKey) {
     if (skuKey === 'tpuv6e') return 'ct6e-standard-1t (1 Chip = 1 Dev)';
-    if (skuKey === 'g4') return 'g4-standard-48 (1× G4 96GB)';
+    if (skuKey === 'g4') return 'g4-standard-48 (1× G4 96GB • 48 vCPU)';
     if (skuKey === 'l4') return 'g2-standard-12 (1× L4 24GB)';
+    if (skuKey === 'h100') return 'a3-highgpu-1g/2g/4g/8g (H100 80GB)';
     return HARDWARE_CATALOG[skuKey] ? HARDWARE_CATALOG[skuKey].machineType : skuKey;
   }
 
@@ -2281,15 +2289,15 @@
       if (cv.archetype === 'siglip2_giant' || cv.archetype === 'hybrid_pipeline') {
         items.push({
           tone: 'amber',
-          title: 'Precision Gate — Lock FP32 on SigLIP2-Giant 384px Retrieval (~195 img/s/chip on TPU v6e):',
-          body: 'torch.compile(dynamic=False) delivers 3.4x speedup over eager on 1 TPU v6e chip (1 TensorCore = 1 device). Do NOT use BF16 for retrieval embeddings: BF16 passes synthetic random-tensor checks (min cos ~0.998) but degrades real-image nearest-neighbor recall (55/64 vs 63/64 in FP32). Keep static batch=8 (larger batches yield no gain and dynamic shapes retrigger compilation).'
+          title: 'Heavy ViT Retrieval (SigLIP2-Giant 384px) — TPU v6e Leads (~195 vs 133 H100 / 87 G4 / 58 A100 img/s):',
+          body: 'On 64 real COCO images, BF16 degrades nearest-neighbor recall across BOTH GPU and TPU (55–56/64, min cos ~0.945) and must NOT be used for retrieval. On GPU, PyTorch defaults cuda.matmul.allow_tf32=False (13–33 img/s in strict FP32); enabling TF32 restores 64/64 recall at 58 img/s (A100), 87 img/s (G4), and 133 img/s (H100) — while 1 TPU v6e chip (FP32, 63/64 recall) hits ~195 img/s (1.46x H100, 2.24x G4). XProf confirms 84.7% pure device compute (86% duty cycle, 4.61 GiB HBM; 56% Attention / 37% MLP).'
         });
       }
       if (cv.archetype === 'convnext_effnet' || cv.archetype === 'hybrid_pipeline') {
         items.push({
           tone: 'blue',
-          title: 'Host↔Device PCIe & Decode Bottleneck — ~2/3 of Step Time on Fast CNNs:',
-          body: 'On ConvNeXt-Tiny & EfficientNet-B0 (224px, BF16 torch.compile), 1 TPU v6e chip achieves ~2,020–2,285 img/s host-fed vs ~7,200 img/s device-resident (~67% host-transfer bound). Provision ample host vCPUs/RAM (~' + fmtInt(cv.estHostVcpu) + ' vCPUs / ' + fmtInt(cv.estHostRamGB) + ' GB RAM) and async prefetch queues, especially at ' + cv.imgMB + ' MB/img raw frames.'
+          title: 'Light CNN Classifiers (224px BF16) — Single-GPU G4 Leads (~4,850–5,520 img/s) & Host Decode Matters:',
+          body: 'With torch.compile(dynamic=False) at batch=8 (62–63/64 COCO top-1), 1× G4 96GB leads at 5,334–5,520 img/s (ConvNeXt-Tiny) & 4,854–4,882 img/s (EfficientNet-B0), ahead of H100 (2,371–3,782), TPU v6e (1,829–2,285), and A100 80GB (1,203–1,911). On fast CNNs ~2/3 of step time is Host↔Device PCIe copy + CPU decode — provision ~' + fmtInt(cv.estHostVcpu) + ' vCPUs / ' + fmtInt(cv.estHostRamGB) + ' GB RAM for ' + cv.imgMB + ' MB/img payloads.'
         });
       }
       if (cv.portableSku === 'tpuv6e' && cv.pAligned > 0) {
@@ -2302,8 +2310,8 @@
       if (cv.portablePct < 100 || cv.archetype === 'custom_cuda_det') {
         items.push({
           tone: 'red',
-          title: 'CUDA Lock-In Isolation — Keep MMDetection / MMCV & Custom Point-Cloud Ops on 1-GPU G4 / L4:',
-          body: 'Object detectors using custom C++/CUDA ops (DeformConv, rotated RoIAlign, 3D voxelization) avoid costly XLA kernel rewrites by landing on single-GPU g4-standard-48 (1× RTX PRO 6000 96GB @ $1.33/hr 3Y CUD) or g2-standard-12 (1× L4 24GB).'
+          title: 'CUDA Lock-In & Physical CPU Parity — Prefer g4-standard-48 (24 Physical Cores) Over a2-ultragpu-1g:',
+          body: 'Custom C++/CUDA ops (MMDetection/MMCV, 3D point-cloud) run zero-refactor on g4-standard-48 (1× RTX PRO 6000 96GB, 48 vCPU = 24 physical Turin cores, 180 GB RAM). Watch host CPU parity when migrating from Azure Standard_NC24ads_A100_v4 (24 non-SMT physical cores, 220 GiB): GCP a2-ultragpu-1g has only 12 vCPUs (6 physical cores = 1/4 the CPU), which can bottleneck heavy image decoding.'
         });
       }
       items.forEach(function (it) {
@@ -2340,7 +2348,7 @@
         {
           sku: 'A10 / A10G (24 GB, 1 die)',
           cnt: leg.a10 || 0,
-          gpuMap: (leg.a10 || 0) + '× L4 24GB (g2-std) or ' + Math.ceil((leg.a10 || 0) * 0.6) + '–' + (leg.a10 || 0) + '× G4 96GB (1-GPU)',
+          gpuMap: (leg.a10 || 0) + '× g4-standard-48 (1× G4 96GB) or g2-standard (1× L4 24GB; check RAM if >180G)',
           tpuMap: 'ct6e-standard-1t (1 Chip = 1 Dev, 32GB) if pure PyTorch',
           path: 'Drop-In G4/L4 (CUDA) or v6e-1t'
         },
@@ -2355,22 +2363,22 @@
           sku: 'T4 (16 GB, 1 die)',
           cnt: leg.t4 || 0,
           gpuMap: Math.ceil((leg.t4 || 0) * 0.5) + '–' + (leg.t4 || 0) + '× L4 24GB ($0.36/hr 3Y CUD)',
-          tpuMap: ' Consolidate onto 1–2× ct6e-standard-1t',
+          tpuMap: 'Consolidate onto 1–2× ct6e-standard-1t',
           path: 'High-ROI L4 Consolidation'
         },
         {
           sku: 'A100 40G/80G (1 die)',
           cnt: leg.a100 || 0,
-          gpuMap: (leg.a100 || 0) + '× G4 96GB (1-GPU pod parity; ~8.5 vs ~10.1 det img/s)',
-          tpuMap: Math.max(1, Math.round((leg.a100 || 0) * (cv.portablePct / 100.0))) + '× TPU v6e-1t for ViT/CNN pods',
-          path: 'Split: G4 (MMDet) + TPU v6e (ViT)'
+          gpuMap: (leg.a100 || 0) + '× g4-standard-48 (24 phys cores, 96GB; 1.5x-4x faster) or a2-ultragpu-1g (6 phys cores, 80GB)',
+          tpuMap: Math.max(1, Math.round((leg.a100 || 0) * (cv.portablePct / 100.0))) + '× TPU v6e-1t for heavy ViTs (~195 vs 58 img/s)',
+          path: 'G4 (24-core + CUDA) + v6e (ViT)'
         },
         {
           sku: 'H100 80GB (1 die)',
           cnt: leg.h100 || 0,
-          gpuMap: (leg.h100 > 0 ? Math.ceil(leg.h100 / 8) * 8 + '× H100 (a3-mega) or ' + (leg.h100 * 2) + '× G4 96GB' : '0'),
-          tpuMap: 'ct6e-standard-4t/8t for PyTorch backbone training',
-          path: 'Retraining Pool (A3 Mega / DWS)'
+          gpuMap: (leg.h100 > 0 ? alignCvDevices('h100', leg.h100) + '× H100 (a3-highgpu-1g/2g/4g/8g + DWS) or ' + (leg.h100 * 2) + '× G4 96GB' : '0'),
+          tpuMap: 'ct6e-standard-4t/8t for pure PyTorch ViT training',
+          path: 'a3-highgpu-4g (DWS) or G4 Pool'
         }
       ];
       var shown = 0;
