@@ -14,7 +14,7 @@ STATIC_DIR = os.path.dirname(os.path.abspath(__file__))
 CATALOG_SUMMARY = {
     "status": "ok",
     "service": "gpu-sizing-agent",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "verified_gcp_regions_count": 43,
     "cv_empirical_benchmarks_batch8_compiled": {
         "siglip2_giant_384px_recall_verified": {
@@ -181,6 +181,7 @@ class SecureStaticHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Cache-Control", "no-cache, must-revalidate")
         super().end_headers()
 
     def do_GET(self):

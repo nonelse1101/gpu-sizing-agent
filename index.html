@@ -53,7 +53,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=1.4.1" />
 </head>
 <body class="min-h-screen flex flex-col selection:bg-blue-500 selection:text-white">
   <!-- Google Cloud 4-Color Accent Strip -->
@@ -304,7 +304,7 @@
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 <span id="ovRegionAdvisoryTitle">Regional Capacity &amp; Verified GCE Zone Matrix</span>
               </span>
-              <span id="ovRegionSkuCountBadge" class="px-2 py-0.5 rounded bg-white text-[#202124] border border-amber-300 font-mono text-[11px]">All 6 Catalog SKUs</span>
+              <span id="ovRegionSkuCountBadge" class="px-2 py-0.5 rounded bg-white text-[#202124] border border-amber-300 font-mono text-[11px]">All 7 Catalog SKUs</span>
             </div>
             <p id="ovRegionAdvisoryBody">
               For global deployments, A4 (B200) and A3 Ultra (H200) deliver the highest single-node HBM capacity (1,440 GB and 1,128 GB/node) via CUD/DWS reservation.
@@ -537,7 +537,7 @@
               <select id="recSelectRegion" class="w-full bg-white border border-[#dadce0] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#202124]">
                 <option value="global">Global / All Regions (Unconstrained)</option>
               </select>
-              <div id="recRegionGpuListHint" class="text-[11px] font-mono text-[#5f6368]">Available SKUs: B200, H200, H100, G4, L4, TPU7x</div>
+              <div id="recRegionGpuListHint" class="text-[11px] font-mono text-[#5f6368]">Available SKUs: B200, H200, H100, G4, L4, TPU7x, TPU v6e</div>
             </div>
 
             <!-- Tech Mode Only: Serving Runtime -->
@@ -1804,6 +1804,6 @@
     </div>
   </footer>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=1.4.1"></script>
 </body>
 </html>

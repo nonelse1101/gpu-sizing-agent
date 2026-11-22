@@ -538,17 +538,17 @@
       id: 'us-east1',
       label: 'us-east1 (South Carolina, USA)',
       group: 'Americas (US, Canada, LATAM)',
-      skus: { b200: ['b', 'd'], g4: ['b', 'd'], l4: ['b', 'c', 'd'], tpu7x: ['b'], tpuv6e: ['b', 'd'] },
+      skus: { b200: ['b', 'd'], g4: ['b', 'd'], l4: ['b', 'c', 'd'], tpu7x: ['b'], tpuv6e: ['d'] },
       otherAccels: 'GB200 (zone d), A100 40GB (zone b), TPU v5p (zone d), TPU v5e (zones b, c)',
-      advisory: 'Major US East AI hub: hosts B200 (zones b, d), G4 (zones b, d), L4 (zones b, c, d), Cloud TPU7x (zone b), and Cloud TPU v6e (zones b, d), plus GB200 (zone d). For H100/H200 on US East Coast, use us-east4 (N. Virginia) or us-east5 (Columbus).'
+      advisory: 'Major US East AI hub: hosts B200 (zones b, d), G4 (zones b, d), L4 (zones b, c, d), Cloud TPU7x (zone b), and Cloud TPU v6e (zone d), plus GB200 (zone d). For H100/H200 on US East Coast, use us-east4 (N. Virginia) or us-east5 (Columbus).'
     },
     'us-east4': {
       id: 'us-east4',
       label: 'us-east4 (Northern Virginia, USA)',
       group: 'Americas (US, Canada, LATAM)',
-      skus: { b200: ['b'], h200: ['b'], h100: ['a', 'b', 'c'], g4: ['b', 'c'], l4: ['a', 'c'], tpuv6e: ['a', 'b'] },
+      skus: { b200: ['b'], h200: ['b'], h100: ['a', 'b', 'c'], g4: ['b', 'c'], l4: ['a', 'c'], tpuv6e: ['a'] },
       otherAccels: 'GB200 (zone b), A100 80GB (zone c), TPU v5e (zone b), T4 (zones a, b, c)',
-      advisory: 'Full GPU + Trillium coverage on US East Coast: hosts B200 (zone b), H200 (zone b), H100 (zones a, b, c), G4 (zones b, c), L4 (zones a, c), and Cloud TPU v6e (zones a, b). For TPU7x on US East, use us-east1 or us-east5.'
+      advisory: 'Full GPU + Trillium coverage on US East Coast: hosts B200 (zone b), H200 (zone b), H100 (zones a, b, c), G4 (zones b, c), L4 (zones a, c), and Cloud TPU v6e (zone a). For TPU7x on US East, use us-east1 or us-east5.'
     },
     'us-east5': {
       id: 'us-east5',
@@ -562,9 +562,9 @@
       id: 'us-south1',
       label: 'us-south1 (Dallas, Texas, USA)',
       group: 'Americas (US, Canada, LATAM)',
-      skus: { b200: ['b'], h200: ['b'], g4: ['a', 'b'], tpu7x: ['b'] },
-      otherAccels: 'TPU v5p (zone a), TPU v5e (zone a)',
-      advisory: 'Dallas hosts B200 (zone b), H200 (zone b), G4 (zones a, b), and Cloud TPU7x (zone b), plus TPU v5p/v5e.'
+      skus: { b200: ['b'], h200: ['b'], g4: ['a', 'b'], tpu7x: ['b'], tpuv6e: ['a', 'ai1b', 'c'] },
+      otherAccels: 'TPU v5p (zones a, c), TPU v5e (zone a)',
+      advisory: 'Dallas hosts B200 (zone b), H200 (zone b), G4 (zones a, b), Cloud TPU7x (zone b), and Cloud TPU v6e (zones a, ai1b AI-zone, c), plus TPU v5p/v5e.'
     },
     'us-west1': {
       id: 'us-west1',
@@ -643,9 +643,9 @@
       id: 'europe-west4',
       label: 'europe-west4 (Eemshaven, Netherlands)',
       group: 'Europe, Middle East & Africa (EMEA)',
-      skus: { b200: ['b'], h200: ['a'], h100: ['b', 'c'], g4: ['a', 'b', 'c'], l4: ['a', 'b', 'c'], tpuv6e: ['a', 'b'] },
+      skus: { b200: ['b'], h200: ['a'], h100: ['b', 'c'], g4: ['a', 'b', 'c'], l4: ['a', 'b', 'c'], tpuv6e: ['a'] },
       otherAccels: 'GB200 (zone b), A100 80GB/40GB (zones a, b), TPU v5p (zone b), TPU v5e (zones a, b)',
-      advisory: 'Flagship European AI hub: hosts B200 (zone b), H200 (zone a), H100 (zones b, c), G4 (zones a, b, c), L4 (zones a, b, c), and Cloud TPU v6e (zones a, b), plus GB200. For TPU7x in Europe, use europe-west2 (London zone a).'
+      advisory: 'Flagship European AI hub: hosts B200 (zone b), H200 (zone a), H100 (zones b, c), G4 (zones a, b, c), L4 (zones a, b, c), and Cloud TPU v6e (zone a), plus GB200. For TPU7x in Europe, use europe-west2 (London zone a).'
     },
     'europe-west1': {
       id: 'europe-west1',
@@ -757,7 +757,7 @@
       group: 'Europe, Middle East & Africa (EMEA)',
       skus: {},
       otherAccels: 'A100 40GB (zones a, c), T4 (zones b, c) only',
-      advisory: 'Tel Aviv hosts NVIDIA A100 40GB (zones a, c) and T4 (zones b, c), but none of the 6 primary catalog SKUs.'
+      advisory: 'Tel Aviv hosts NVIDIA A100 40GB (zones a, c) and T4 (zones b, c), but none of the 7 primary catalog SKUs.'
     },
     'me-central1': {
       id: 'me-central1',
@@ -849,14 +849,14 @@
   function formatRegionSkuSummary(regObj) {
     if (regObj.id === 'global') return '[All 7 SKUs]';
     var order = ['b200', 'h200', 'h100', 'g4', 'l4', 'tpu7x', 'tpuv6e'];
-    var names = { b200: 'B200', h200: 'H200', h100: 'H100', g4: 'G4', l4: 'L4', tpu7x: 'TPU7x', tpuv6e: 'TPUv6e' };
+    var names = { b200: 'B200', h200: 'H200', h100: 'H100', g4: 'G4', l4: 'L4', tpu7x: 'TPU7x', tpuv6e: 'TPU v6e' };
     var present = [];
     order.forEach(function (k) {
       if (regObj.skus && regObj.skus[k] && regObj.skus[k].length > 0) {
         present.push(names[k]);
       }
     });
-    if (present.length === 7) return '[All 7 SKUs: B200, H200, H100, G4, L4, TPU7x, TPUv6e]';
+    if (present.length === 7) return '[All 7 SKUs: B200, H200, H100, G4, L4, TPU7x, TPU v6e]';
     if (present.length > 0) return '[' + present.join(', ') + ']';
     if (regObj.otherAccels && regObj.otherAccels.indexOf('No GPU') === -1 && regObj.otherAccels !== 'None') {
       return '[Legacy/Other: ' + regObj.otherAccels.split('(')[0].trim() + ']';
@@ -1264,6 +1264,7 @@
     }
 
     var allCatalogOrder = ['b200', 'h200', 'h100', 'g4', 'l4', 'tpu7x', 'tpuv6e'];
+    var pillDisplayNames = { b200: 'B200', h200: 'H200', h100: 'H100', g4: 'G4', l4: 'L4', tpu7x: 'TPU7x', tpuv6e: 'TPU v6e' };
     var availCount = 0;
     if (zonePillsBox) {
       zonePillsBox.replaceChildren();
@@ -1281,7 +1282,7 @@
             ? 'px-2.5 py-1 rounded-md text-[11px] font-mono font-bold border transition cursor-pointer ' +
               (k === state.sku ? 'bg-[#1a73e8] text-white border-[#1a73e8] shadow-xs' : 'bg-[#e6f4ea] text-[#137333] border-[#ceead6] hover:border-[#137333]')
             : 'px-2.5 py-1 rounded-md text-[11px] font-mono bg-white text-[#5f6368] border border-[#dadce0] opacity-75',
-          (isAvail ? '✓ ' : '✗ ') + hwObj.id.toUpperCase() + ' (' + zText + ')'
+          (isAvail ? '✓ ' : '✗ ') + (pillDisplayNames[k] || hwObj.id.toUpperCase()) + ' (' + zText + ')'
         );
         pill.type = 'button';
         pill.title = isAvail ? ('Click to size with ' + hwObj.name + ' in ' + state.region) : (hwObj.name + ' is not deployed in ' + state.region);
@@ -1700,14 +1701,23 @@
     var regBadge = document.getElementById('recRegionVerifyBadge');
     var regHint = document.getElementById('recRegionGpuListHint');
     if (regBadge) {
+      var tpuInReg = [];
+      if (state.recRegion !== 'global') {
+        if (getRegionSkuZones(state.recRegion, 'tpu7x').length > 0) tpuInReg.push('TPU7x');
+        if (getRegionSkuZones(state.recRegion, 'tpuv6e').length > 0) tpuInReg.push('TPU v6e');
+      }
+      var gpuCount = (recResult.availInReg && recResult.availInReg.length) || 0;
       if (state.recRegion === 'global') {
-        regBadge.textContent = 'All 6 SKUs Enabled';
+        regBadge.textContent = 'All 7 SKUs Enabled';
         regBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#e6f4ea] text-[#137333] border border-[#ceead6]';
-      } else if (recResult.availInReg && recResult.availInReg.length > 0) {
-        regBadge.textContent = recResult.availInReg.length + ' GPU SKU(s) Verified in ' + state.recRegion;
+      } else if (gpuCount > 0 || tpuInReg.length > 0) {
+        var parts = [];
+        if (gpuCount > 0) parts.push(gpuCount + ' GPU');
+        if (tpuInReg.length > 0) parts.push(tpuInReg.join(' + '));
+        regBadge.textContent = parts.join(' + ') + ' Verified in ' + state.recRegion;
         regBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#e8f0fe] text-[#174ea6] border border-[#d2e3fc]';
       } else {
-        regBadge.textContent = '0 Modern LLM GPUs in ' + state.recRegion;
+        regBadge.textContent = '0 Catalog SKUs in ' + state.recRegion;
         regBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#fce8e6] text-[#c5221f] border border-[#fad2cf]';
       }
     }
