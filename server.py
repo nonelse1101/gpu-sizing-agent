@@ -14,7 +14,7 @@ STATIC_DIR = os.path.dirname(os.path.abspath(__file__))
 CATALOG_SUMMARY = {
     "status": "ok",
     "service": "gpu-sizing-agent",
-    "version": "1.4.1",
+    "version": "1.4.2",
     "verified_gcp_regions_count": 43,
     "cv_empirical_benchmarks_batch8_compiled": {
         "siglip2_giant_384px_recall_verified": {

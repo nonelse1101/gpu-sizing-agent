@@ -37,7 +37,7 @@ An interactive **AI Infrastructure Sizing, Silicon Recommender & Unit Economics 
   - **Empirical `TPU v6e` vs. Single-GPU (`G4` / `H100` / `A100`) Benchmark Anchors + Production Triage** (`torch.compile(dynamic=False)`, `batch=8`, host-fed, verified on 64 real COCO images; 1 `TPU v6e` chip = 1 device vs. 1 single-die GPU):
     - **Heavy Vision Transformer (`SigLIP2-Giant 384px`, 1.16B)**: `TPU v6e` leads at **`~195 img/s` (`FP32`, `63/64` recall)** vs. **`~133 img/s` (`H100`)**, **`~87 img/s` (`G4`)**, and **`~58 img/s` (`A100 80GB`)** with `FP32 + TF32` (`64/64` recall). `BF16` degrades real-image retrieval recall (`55–56/64`) on **both** GPU and TPU; PyTorch also defaults `cuda.matmul.allow_tf32=False` (`13–33 img/s` trap until `TF32` is enabled). XProf on `TPU v6e` confirms **`84.7%` pure device compute** (`86%` duty cycle, `4.61 GiB` peak HBM).
     - **Light CNN Classifiers (`ConvNeXt-Tiny` & `EfficientNet-B0 224px`, `BF16`, `62–63/64` top-1)**: Single-GPU **`G4` (`g4-standard-48`) leads at `4,854–5,520 img/s`**, ahead of **`H100` (`2,371–3,782`)**, **`TPU v6e` (`1,829–2,285`)**, and **`A100 80GB` (`1,203–1,911`)**, with ~2/3 of step time governed by Host↔Device PCIe transfer & CPU image decode.
-    - **Custom-CUDA Detectors & Host Physical-Core Parity**: Isolates `MMDetection / MMCV` & 3D point-cloud ops onto single-GPU `g4-standard-48` (`96 GB`, `48 vCPU = 24 physical Turin cores` — matching 24 non-SMT physical cores on Azure `Standard_NC24ads_A100_v4`, whereas `a2-ultragpu-1g` has only `12 vCPU = 6 physical cores`), while standard PyTorch ViT pods target `ct6e-standard-1t` single-chip slices.
+    - **Custom-CUDA Detectors & Host Physical-Core Parity**: Isolates `MMDetection / MMCV` detectors onto single-GPU `g4-standard-48` (`96 GB`, `48 vCPU = 24 physical Turin cores`, whereas `a2-ultragpu-1g` has only `12 vCPU = 6 physical cores`), while standard PyTorch ViT pods target `ct6e-standard-1t` single-chip slices. Model code is unchanged on `G4`, but the runtime image must be rebuilt: prebuilt `CUDA 12.9` `torchvision` ops fail on `G4` (`no kernel image is available for execution on the device`); `CUDA 12.8 / 13.0` wheels or a source build work, and `MMCV` builds from source. Detectors do **not** run on `TPU v6e` today (`nms`, `roi_align`, `deform_conv2d` are not implemented in TorchTPU).
   - **Cloud-to-Cloud Legacy GPU Migration Mapper**: Maps source AWS / Azure fleets (`A10/A10G`, `L40S`, `T4`, `A100`, `H100`) to die-aligned GCP GPU & TPU replacements (including `a3-highgpu-1g/2g/4g/8g` + DWS for retraining), exporting ready-to-paste **CCA Capacity Briefs** and **GKE Hybrid NodePool Terraform**.
 
 ---
@@ -51,6 +51,27 @@ All four accelerators below are single-die (`1 TPU v6e chip = 1 TensorCore = 1 d
 | **`SigLIP2-Giant` (`384px`)** | TPU `FP32` / GPU `FP32+TF32` (`63–64/64` NN) | **193–197 img/s** | 87 img/s | 133 img/s | 58 img/s |
 | **`ConvNeXt-Tiny` (`224px`)** | `BF16` (`63/64` top-1) | 2,004–2,285 img/s | **5,334–5,520 img/s** | 3,726–3,782 img/s | 1,872–1,911 img/s |
 | **`EfficientNet-B0` (`224px`)** | `BF16` (`62–63/64` top-1) | 1,829–2,201 img/s | **4,854–4,882 img/s** | 2,371–2,463 img/s | 1,203–1,232 img/s |
+
+### Detectors, MoGe-2, L4 and CPU-only (public models, `batch=8`, images/s)
+
+Default mode (no `torch.compile`) on 640x640 COCO images unless noted; one or two runs each. Public weights only.
+
+| Model | TPU v6e (`1t`) | G4 (`1g`) | H100 (`1g`) | A100 80GB (`1g`) | L4 (`1g`) | C4A / C4 (48 vCPU, CPU only) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Faster R-CNN** (`torchvision`) | Cannot run | 116 | **139** | 72 | 24 | 4.9 / 2.3 |
+| **RetinaNet** (`torchvision`) | Cannot run | 119 | **136** | 70 | 24 | 7.3 / 3.3 |
+| **MMDetection Faster R-CNN + DCN** (incl. CPU preprocessing) | Cannot run | 88 | Not run | 33 | 23 | Not measured |
+| **MoGe-2 ViT-L depth** (`FP32`, with post-processing) | 10.8 (Nov 3 image only) | **11.4** | 9.8 | 4.8 | Not measured | n/a / 0.43 |
+| **`SigLIP2-Giant`** (`FP32+TF32`, compiled) | 193–197 | 87 | 133 | 58 | 12.9 | 2.5 / 2.0 |
+| **`ConvNeXt-Tiny`** (`BF16`, compiled; CPU `FP32`) | 2,004–2,285 | 5,334–5,520 | 3,726–3,782 | 1,872–1,911 | 1,821–1,863 | 215 / 138 |
+| **`EfficientNet-B0`** (`BF16`, compiled; CPU `FP32`) | 1,829–2,201 | 4,854–4,882 | 2,371–2,463 | 1,203–1,232 | 1,143–1,153 | 281 / 183 |
+
+How these feed the calculator:
+
+- **Detector archetype**: the `G4` rate is a planning placeholder for heavy high-resolution detectors, not a measurement. Only the ratios between GPUs come from the public detectors above (`H100` about 1.2x `G4`, `L4` about 0.2x `G4`). `H200`, `B200` and `TPU7x` values are extrapolations.
+- **The MMDetection row includes CPU preprocessing** on hosts with 48 (`G4`), 12 (`A100`) and 16 (`L4`) vCPUs, so its ratios reflect the host as much as the GPU. Do not use it to derive GPU counts.
+- **TPU v6e**: MoGe-2 runs only on the Nov 3, 2026 TorchTPU image, which is slower than the Aug 4 image on `SigLIP2` under `torch.compile` (about 159 vs 195 img/s). Only 1 of the 8 chips on a `ct6e-standard-8t` host was usable for independent models in these tests.
+- **CPU only** is workable for the light classifiers and 10–25x slower than one `A100` or `G4` on detectors and large models.
 
 ---
 

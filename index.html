@@ -53,7 +53,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=1.4.1" />
+  <link rel="stylesheet" href="styles.css?v=1.4.2" />
 </head>
 <body class="min-h-screen flex flex-col selection:bg-blue-500 selection:text-white">
   <!-- Google Cloud 4-Color Accent Strip -->
@@ -244,7 +244,7 @@
             <div class="tier-price text-base sm:text-lg font-bold text-[#188038] mt-4" id="tierPrice-vision_cv">Hybrid &asymp; $31.6K/mo</div>
             <div role="tooltip" class="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute left-0 right-0 top-full mt-2 z-30 p-4 rounded-lg bg-white text-[#3c4043] text-sm leading-relaxed shadow-xl border border-[#dadce0]">
               <div class="font-bold text-[#188038] mb-1.5">Queue-Driven Batch CV &amp; Cloud Migration</div>
-              <div>1.5M new + 20M/mo re-run images (~20 MB/img) across ~25 1-GPU K8s microservices + periodic retraining.</div>
+              <div>2M new + 30M/mo re-run images (~12 MB/img) across ~20 1-GPU K8s microservices + periodic retraining.</div>
               <div class="mt-2 pt-2 border-t border-[#dadce0] text-xs text-[#5f6368]"><span class="font-semibold text-[#202124]">Preferred Hybrid:</span> G4 96GB (1-GPU CUDA) + Cloud TPU v6e (1t PyTorch)</div>
             </div>
           </button>
@@ -802,7 +802,7 @@
           </div>
           <div class="flex flex-wrap items-center gap-1.5 hidden" id="cvPresetButtons">
             <button type="button" data-cv-preset="cv_hybrid_geo" class="cv-preset-btn px-3 py-1 rounded-md text-xs font-bold border border-[#1a73e8] bg-[#e8f0fe] text-[#202124] transition">
-              Multi-Model Geo &amp; Street-View Fleet (1.5M/day + 20M/mo &bull; Hybrid G4 + TPU v6e)
+              Multi-Model Batch Vision Fleet (2M/day + 30M/mo &bull; Hybrid G4 + TPU v6e)
             </button>
             <button type="button" data-cv-preset="cv_siglip2_v6e" class="cv-preset-btn px-3 py-1 rounded-md text-xs font-medium border border-[#dadce0] bg-white text-[#3c4043] hover:border-[#1a73e8] transition">
               SigLIP2-Giant 384px Retrieval (TPU v6e FP32 &bull; ~195 img/s/chip)
@@ -1399,15 +1399,15 @@
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label for="cvInpDailyMillions" class="block text-xs font-semibold text-[#3c4043] mb-1">Daily New Images (M/day)</label>
-                <input type="number" id="cvInpDailyMillions" step="0.1" min="0.05" value="1.5" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
+                <input type="number" id="cvInpDailyMillions" step="0.1" min="0.05" value="2.0" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
               </div>
               <div>
                 <label for="cvInpRerunMillions" class="block text-xs font-semibold text-[#3c4043] mb-1">Monthly Re-runs (M/mo)</label>
-                <input type="number" id="cvInpRerunMillions" step="1" min="0" value="20" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
+                <input type="number" id="cvInpRerunMillions" step="1" min="0" value="30" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
               </div>
               <div>
                 <label for="cvInpImgSizeMB" class="block text-xs font-semibold text-[#3c4043] mb-1">Avg Raw Image (MB/img)</label>
-                <input type="number" id="cvInpImgSizeMB" step="1" min="0.2" value="20" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
+                <input type="number" id="cvInpImgSizeMB" step="1" min="0.2" value="12" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
               </div>
               <div>
                 <label for="cvInpPeakFactor" class="block text-xs font-semibold text-[#3c4043] mb-1">Queue Peak Headroom (&times;)</label>
@@ -1416,7 +1416,7 @@
             </div>
 
             <div id="cvTrafficSummaryBox" class="p-3 rounded-lg bg-[#f8f9fa] border border-[#dadce0] text-xs font-mono text-[#3c4043] leading-relaxed">
-              Sustained: 25.1 img/s &bull; Peak Sized: 40.1 img/s &bull; Daily Read: 43.3 TB/day
+              Sustained: 34.7 img/s &bull; Peak Sized: 55.6 img/s &bull; Daily Read: 36.0 TB/day
             </div>
           </div>
 
@@ -1470,11 +1470,11 @@
             <div class="grid grid-cols-2 gap-3 pt-2 border-t border-[#dadce0]">
               <div>
                 <label for="cvInpDeployments" class="block text-xs font-semibold text-[#3c4043] mb-1">K8s Model Deployments</label>
-                <input type="number" id="cvInpDeployments" min="1" max="200" step="1" value="25" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
+                <input type="number" id="cvInpDeployments" min="1" max="200" step="1" value="20" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
               </div>
               <div>
                 <label for="cvInpRetrainHrs" class="block text-xs font-semibold text-[#3c4043] mb-1">Retraining (GPU-hrs/mo)</label>
-                <input type="number" id="cvInpRetrainHrs" min="0" step="100" value="4380" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
+                <input type="number" id="cvInpRetrainHrs" min="0" step="100" value="3650" class="w-full google-input px-3 py-1.5 text-sm font-mono font-bold" />
               </div>
             </div>
 
@@ -1503,7 +1503,7 @@
             <div class="grid grid-cols-5 gap-2 text-center">
               <div>
                 <label for="legInpA10" class="block text-[11px] font-mono font-bold text-[#5f6368] mb-1">A10/A10G</label>
-                <input type="number" id="legInpA10" min="0" step="1" value="10" class="w-full google-input px-2 py-1 text-center text-xs font-mono font-bold" />
+                <input type="number" id="legInpA10" min="0" step="1" value="8" class="w-full google-input px-2 py-1 text-center text-xs font-mono font-bold" />
               </div>
               <div>
                 <label for="legInpL40s" class="block text-[11px] font-mono font-bold text-[#5f6368] mb-1">L40S 48G</label>
@@ -1515,11 +1515,11 @@
               </div>
               <div>
                 <label for="legInpA100" class="block text-[11px] font-mono font-bold text-[#5f6368] mb-1">A100</label>
-                <input type="number" id="legInpA100" min="0" step="1" value="30" class="w-full google-input px-2 py-1 text-center text-xs font-mono font-bold" />
+                <input type="number" id="legInpA100" min="0" step="1" value="24" class="w-full google-input px-2 py-1 text-center text-xs font-mono font-bold" />
               </div>
               <div>
                 <label for="legInpH100" class="block text-[11px] font-mono font-bold text-[#5f6368] mb-1">H100</label>
-                <input type="number" id="legInpH100" min="0" step="1" value="4" class="w-full google-input px-2 py-1 text-center text-xs font-mono font-bold" />
+                <input type="number" id="legInpH100" min="0" step="1" value="8" class="w-full google-input px-2 py-1 text-center text-xs font-mono font-bold" />
               </div>
             </div>
           </div>
@@ -1542,11 +1542,11 @@
             <div class="bg-white border border-[#dadce0] rounded-lg p-4 shadow-xs">
               <div class="text-xs font-bold uppercase tracking-wider text-[#5f6368]">Unit Economics</div>
               <div id="cvKpiCostPer1MImg" class="text-lg sm:text-xl font-extrabold font-mono text-[#188038] my-1.5">$360 / 1M img</div>
-              <div id="cvKpiVolumeSub" class="text-[11px] font-mono text-[#5f6368]">65.0M images/mo</div>
+              <div id="cvKpiVolumeSub" class="text-[11px] font-mono text-[#5f6368]">90.0M images/mo</div>
             </div>
             <div class="bg-white border border-[#dadce0] rounded-lg p-4 shadow-xs">
               <div class="text-xs font-bold uppercase tracking-wider text-[#5f6368]">Host I/O &amp; Decode</div>
-              <div id="cvKpiDataGravity" class="text-lg sm:text-xl font-extrabold font-mono text-[#202124] my-1.5">43.3 TB/day</div>
+              <div id="cvKpiDataGravity" class="text-lg sm:text-xl font-extrabold font-mono text-[#202124] my-1.5">36.0 TB/day</div>
               <div id="cvKpiHostSub" class="text-[11px] font-mono text-[#b06000]">High CPU/RAM decode</div>
             </div>
           </div>
@@ -1572,7 +1572,7 @@
                 <h3 class="text-sm font-bold text-[#202124] uppercase tracking-wider">Source Cloud GPU &rarr; Google Cloud Replacement Plan</h3>
                 <p class="text-xs text-[#5f6368]">1:1 die-aligned mapping preserving single-GPU microservice topology (G4 1/2/4/8-GPU VMs &amp; TPU v6e 1t)</p>
               </div>
-              <span id="cvLegacyTotalBadge" class="px-2 py-0.5 rounded bg-[#e8f0fe] text-[#174ea6] border border-[#d2e3fc] text-xs font-mono font-bold">44 Source GPUs</span>
+              <span id="cvLegacyTotalBadge" class="px-2 py-0.5 rounded bg-[#e8f0fe] text-[#174ea6] border border-[#d2e3fc] text-xs font-mono font-bold">40 Source GPUs</span>
             </div>
             <div class="overflow-x-auto">
               <table class="w-full text-left border-collapse text-xs font-mono">
@@ -1580,7 +1580,7 @@
                   <tr class="border-b border-[#dadce0] text-[#5f6368] uppercase tracking-wider">
                     <th class="py-2 pr-2 font-sans">Source SKU</th>
                     <th class="py-2 px-2 text-right">Count</th>
-                    <th class="py-2 px-2 font-sans">GCP GPU Drop-In (CUDA)</th>
+                    <th class="py-2 px-2 font-sans">GCP GPU Replacement (CUDA)</th>
                     <th class="py-2 px-2 font-sans">TPU v6e Option (PyTorch)</th>
                     <th class="py-2 pl-2 text-right font-sans">Migration Path</th>
                   </tr>
@@ -1804,6 +1804,6 @@
     </div>
   </footer>
 
-  <script src="app.js?v=1.4.1"></script>
+  <script src="app.js?v=1.4.2"></script>
 </body>
 </html>

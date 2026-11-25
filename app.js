@@ -227,8 +227,8 @@
       sku: 'g4',
       isVisionCv: true,
       cvPresetKey: 'cv_hybrid_geo',
-      contextDesc: 'Sized Reference: 1.5M new + 20M/mo re-run images (~20 MB/img = 43.3 TB/day) • 25 K8s CV microservices + 4,380 GPU-hrs/mo retraining',
-      postTrain: { gpus: '6× G4 or 4× H100 GPUs', duration: '4,380 GPU-hrs / mo', cost: '$5.8K–$19.3K / mo', sub: 'Continuous detector retraining & active-learning loops' },
+      contextDesc: 'Sized Reference: 2M new + 30M/mo re-run images (~12 MB/img = 36.0 TB/day) • 20 K8s CV microservices + 3,650 GPU-hrs/mo retraining',
+      postTrain: { gpus: '5× G4 or H100 GPUs (continuous equivalent)', duration: '3,650 GPU-hrs / mo', cost: '$4.9K–$16.1K / mo', sub: 'Continuous detector retraining & active-learning loops' },
       preTrain: { gpus: '32 GPUs (4 Nodes)', duration: '~9 Days / backbone', cost: '$103K / campaign', sub: '4× a3-megagpu-8g (H100) • Vision foundation encoder pre-training' }
     }
   };
@@ -336,18 +336,18 @@
   // Generalized Computer Vision, Geo-Perception & Legacy Fleet Migration Presets (100% Customer-Agnostic)
   var CV_PRESETS = {
     cv_hybrid_geo: {
-      dailyMillions: 1.5,
-      rerunMillions: 20.0,
-      imgSizeMB: 20,
+      dailyMillions: 2.0,
+      rerunMillions: 30.0,
+      imgSizeMB: 12,
       peakFactor: 1.6,
       archetype: 'hybrid_pipeline',
       portablePct: 40,
       portableSku: 'tpuv6e',
       cudaSku: 'g4',
-      deployments: 25,
-      retrainHrs: 4380,
+      deployments: 20,
+      retrainHrs: 3650,
       packModels: false,
-      legacy: { a10: 10, l40s: 0, t4: 0, a100: 30, h100: 4 }
+      legacy: { a10: 8, l40s: 0, t4: 0, a100: 24, h100: 8 }
     },
     cv_siglip2_v6e: {
       dailyMillions: 5.0,
@@ -394,26 +394,32 @@
   };
 
   // Empirical Host-Fed CV Throughput Anchors (images/sec per single GPU or single TPU v6e chip, batch=8, torch.compile, 64-image COCO parity verified)
+  // Measured: tpuv6e, g4, h100, l4 on siglip2_giant and convnext_effnet (L4: SigLIP2 12.9 img/s in FP32+TF32; ConvNeXt-Tiny 1,821-1,863 and
+  // EfficientNet-B0 1,143-1,153 in BF16). h200, b200 and tpu7x values are extrapolations, not measurements.
+  // custom_cuda_det: the G4 value (8.5) is a planning placeholder for heavy high-resolution detectors, not a measurement. The ratios to it are
+  // calibrated from public torchvision detectors at 640px, batch 8 (Faster R-CNN / RetinaNet img/s: H100 139 / 136, G4 116 / 119, L4 24 / 24):
+  // H100 = 1.2x G4, L4 = 0.2x G4. h200 and b200 keep the earlier extrapolation factors over H100 (1.08x, 1.84x) and are not measured.
+  // Detectors do not run on TPU v6e (NMS, RoIAlign and deformable convolution are not implemented in TorchTPU), hence 0.
   var CV_EMPIRICAL_IMGS_PER_SEC = {
     siglip2_giant: {
       label: 'SigLIP2-Giant 384px (1.16B • TPU FP32 vs GPU TF32, 63-64/64 Recall)',
-      portableRates: { tpuv6e: 195, g4: 87, l4: 32, h100: 133, h200: 145, b200: 260, tpu7x: 420 },
-      cudaRates: { g4: 87, l4: 32, h100: 133, h200: 145, b200: 260 }
+      portableRates: { tpuv6e: 195, g4: 87, l4: 13, h100: 133, h200: 145, b200: 260, tpu7x: 420 },
+      cudaRates: { g4: 87, l4: 13, h100: 133, h200: 145, b200: 260 }
     },
     convnext_effnet: {
       label: 'ConvNeXt-Tiny / EfficientNet-B0 224px (BF16 • 62-63/64 Top-1)',
-      portableRates: { tpuv6e: 2080, g4: 5150, l4: 1350, h100: 3100, h200: 3300, b200: 5600, tpu7x: 3400 },
-      cudaRates: { g4: 5150, l4: 1350, h100: 3100, h200: 3300, b200: 5600 }
+      portableRates: { tpuv6e: 2080, g4: 5150, l4: 1495, h100: 3100, h200: 3300, b200: 5600, tpu7x: 3400 },
+      cudaRates: { g4: 5150, l4: 1495, h100: 3100, h200: 3300, b200: 5600 }
     },
     custom_cuda_det: {
-      label: 'Custom-CUDA Detector / 3D Point-Cloud (MMDetection/MMCV)',
-      portableRates: { tpuv6e: 0, g4: 8.5, l4: 2.8, h100: 18.5, h200: 20.0, b200: 34.0, tpu7x: 0 },
-      cudaRates: { g4: 8.5, l4: 2.8, h100: 18.5, h200: 20.0, b200: 34.0 }
+      label: 'Custom-CUDA Detector / 3D Point-Cloud (MMDetection/MMCV • planning rate, GPU ratios from public detectors)',
+      portableRates: { tpuv6e: 0, g4: 8.5, l4: 1.8, h100: 10.2, h200: 11.0, b200: 18.7, tpu7x: 0 },
+      cudaRates: { g4: 8.5, l4: 1.8, h100: 10.2, h200: 11.0, b200: 18.7 }
     },
     hybrid_pipeline: {
       label: 'Mixed CV Pipeline (ViT Encoders + CNNs + Custom-CUDA Detectors)',
-      portableRates: { tpuv6e: 355, g4: 170, l4: 62, h100: 255, h200: 278, b200: 495, tpu7x: 745 },
-      cudaRates: { g4: 8.5, l4: 2.8, h100: 18.5, h200: 20.0, b200: 34.0 }
+      portableRates: { tpuv6e: 355, g4: 170, l4: 25, h100: 255, h200: 278, b200: 495, tpu7x: 745 },
+      cudaRates: { g4: 8.5, l4: 1.8, h100: 10.2, h200: 11.0, b200: 18.7 }
     }
   };
 
@@ -821,19 +827,19 @@
     trMfu: 45,
     // Vision / CV & Legacy Migration Cockpit State
     activeCvPreset: 'cv_hybrid_geo',
-    cvDailyMillions: 1.5,
-    cvRerunMillions: 20.0,
-    cvImgSizeMB: 20,
+    cvDailyMillions: 2.0,
+    cvRerunMillions: 30.0,
+    cvImgSizeMB: 12,
     cvPeakFactor: 1.6,
     cvArchetype: 'hybrid_pipeline',
     cvPortablePct: 40,
     cvPortableSku: 'tpuv6e',
     cvCudaSku: 'g4',
-    cvDeployments: 25,
-    cvRetrainHrs: 4380,
+    cvDeployments: 20,
+    cvRetrainHrs: 3650,
     cvPackModels: false,
     cvExportMode: 'cca',
-    legacyFleet: { a10: 10, l40s: 0, t4: 0, a100: 30, h100: 4 }
+    legacyFleet: { a10: 8, l40s: 0, t4: 0, a100: 24, h100: 8 }
   };
 
   function getRegionInfo(regId) {
@@ -1625,7 +1631,7 @@
       scores.h100 += 4;
       scores.h200 -= 26;
       scores.b200 -= 34;
-      reasons.g4.unshift('1-GPU Granularity for Custom-CUDA CV (g4-standard): Supports 1, 2, 4, or 8 GPUs/VM (96 GB GDDR7 @ $1.33/hr 3Y CUD) — drop-in replacement for single-GPU A10, L40S, and A100 K8s pods running MMDetection/MMCV or LiDAR ops without 8-GPU node waste.');
+      reasons.g4.unshift('1-GPU Granularity for Custom-CUDA CV (g4-standard): Supports 1, 2, 4, or 8 GPUs/VM (96 GB GDDR7 @ $1.33/hr 3Y CUD) — replacement for single-GPU A10, L40S, and A100 K8s pods running MMDetection/MMCV or LiDAR ops without 8-GPU node waste. Model code is unchanged, but the runtime image must be rebuilt for G4 (prebuilt CUDA 12.9 torchvision ops fail on it).');
       reasons.l4.unshift('Ultra-Low-Cost Single-GPU Vision Tier ($0.36/hr 3Y CUD): Ideal 24 GB single-GPU replacement for T4 / A10 lightweight classifiers, OCR, and video decode microservices.');
       reasons.h100.unshift('Detector Retraining Tier: Best reserved for periodic heavy object-detector retraining (e.g. 4–8 GPUs) rather than fragmented 1-GPU inference deployments.');
     }
@@ -1779,7 +1785,7 @@
     if (state.recWorkload === 'cv_batch') {
       var recCv = computeVisionSizing({ cudaSku: primaryKey === 'l4' ? 'l4' : 'g4', portableSku: 'tpuv6e' });
       if (srcText) {
-        srcText.textContent = 'Batch CV Hybrid Fleet • 1.5M new/day + 20M/mo re-runs (65M images/mo)';
+        srcText.textContent = 'Batch CV Hybrid Fleet • ' + recCv.dailyM.toFixed(1) + 'M new/day + ' + recCv.rerunM.toFixed(0) + 'M/mo re-runs (' + recCv.monthlyImagesMillions.toFixed(0) + 'M images/mo)';
       }
       if (kpi1Lbl) kpi1Lbl.textContent = 'Hybrid CV Serving Pool';
       document.getElementById('recPrimaryPool').textContent =
@@ -2300,7 +2306,7 @@
         items.push({
           tone: 'amber',
           title: 'Heavy ViT Retrieval (SigLIP2-Giant 384px) — TPU v6e Leads (~195 vs 133 H100 / 87 G4 / 58 A100 img/s):',
-          body: 'On 64 real COCO images, BF16 degrades nearest-neighbor recall across BOTH GPU and TPU (55–56/64, min cos ~0.945) and must NOT be used for retrieval. On GPU, PyTorch defaults cuda.matmul.allow_tf32=False (13–33 img/s in strict FP32); enabling TF32 restores 64/64 recall at 58 img/s (A100), 87 img/s (G4), and 133 img/s (H100) — while 1 TPU v6e chip (FP32, 63/64 recall) hits ~195 img/s (1.46x H100, 2.24x G4). XProf confirms 84.7% pure device compute (86% duty cycle, 4.61 GiB HBM; 56% Attention / 37% MLP).'
+          body: 'On 64 real COCO images, BF16 degrades nearest-neighbor recall across BOTH GPU and TPU (55–56/64, min cos ~0.945) and must NOT be used for retrieval. On GPU, PyTorch defaults cuda.matmul.allow_tf32=False (13–33 img/s in strict FP32); enabling TF32 restores 64/64 recall at 13 img/s (L4), 58 img/s (A100), 87 img/s (G4), and 133 img/s (H100) — while 1 TPU v6e chip (FP32, 63/64 recall) hits ~195 img/s (1.46x H100, 2.24x G4). XProf confirms 84.7% pure device compute (86% duty cycle, 4.61 GiB HBM; 56% Attention / 37% MLP).'
         });
       }
       if (cv.archetype === 'convnext_effnet' || cv.archetype === 'hybrid_pipeline') {
@@ -2314,16 +2320,33 @@
         items.push({
           tone: 'green',
           title: 'Single-Chip Pod Isolation — Use ct6e-standard-1t Over Shared 8t Slices:',
-          body: 'On multi-chip ct6e-standard-8t hosts, a single Python process initializes the PJRT client across all 8 chips (blocking a 2nd independent process unless multi-threaded inside 1 process, where up to 7 FP32 SigLIP2 replicas fit in 32 GB HBM). Use ct6e-standard-1t (1 chip = 1 device) node pools for clean 1-pod-per-model K8s isolation.'
+          body: 'On multi-chip ct6e-standard-8t hosts, a single Python process initializes the PJRT client across all 8 chips, which blocks a 2nd independent process. In our tests three ways of using the other chips failed (a second process, a single-host wrapper environment, and addressing tpu:1 to tpu:7 inside one process), so only 1 of 8 chips was usable per host for independent models. Use ct6e-standard-1t (1 chip = 1 device) node pools for 1-pod-per-model K8s isolation (1t node pools were not part of these tests).'
         });
       }
       if (cv.portablePct < 100 || cv.archetype === 'custom_cuda_det') {
         items.push({
           tone: 'red',
-          title: 'CUDA Lock-In & Physical CPU Parity — Prefer g4-standard-48 (24 Physical Cores) Over a2-ultragpu-1g:',
-          body: 'Custom C++/CUDA ops (MMDetection/MMCV, 3D point-cloud) run zero-refactor on g4-standard-48 (1× RTX PRO 6000 96GB, 48 vCPU = 24 physical Turin cores, 180 GB RAM). Watch host CPU parity when migrating from Azure Standard_NC24ads_A100_v4 (24 non-SMT physical cores, 220 GiB): GCP a2-ultragpu-1g has only 12 vCPUs (6 physical cores = 1/4 the CPU), which can bottleneck heavy image decoding.'
+          title: 'Custom-CUDA Detectors on G4 — Rebuild the Runtime Image & Watch Host CPU Parity:',
+          body: 'MMDetection/MMCV detectors run on g4-standard-48 (1× RTX PRO 6000 96GB, 48 vCPU = 24 physical Turin cores, 180 GB RAM) with model code unchanged, but the runtime image must match the GPU: prebuilt CUDA 12.9 torchvision ops fail on G4 with "no kernel image is available for execution on the device". CUDA 12.8 / 13.0 wheels or a source build work, and MMCV (2.1.0 and mmcv-full 1.7.2) builds from source on G4. Verified with public detectors only (ops and detections match CPU on G4, A100 and L4); 3D point-cloud ops were not tested. Watch host CPU parity: a2-ultragpu-1g has only 12 vCPUs (6 physical cores). Throughput that includes CPU preprocessing follows the host as much as the GPU (public MMDetection Faster R-CNN incl. preprocessing: 88 img/s on g4-standard-48 vs 33 on a2-ultragpu-1g), so do not derive GPU-count ratios from such numbers.'
+        });
+        items.push({
+          tone: 'red',
+          title: 'Detectors Do Not Run on TPU v6e Today — NMS, RoIAlign & Deformable Conv Are Not Implemented:',
+          body: 'torchvision nms, roi_align and deform_conv2d are not implemented in TorchTPU on the Aug 4 and Nov 3, 2026 nightly images, so Faster R-CNN, RetinaNet and MMDetection-style detectors cannot run on TPU v6e; keep them on GPU. Public detectors at 640px, batch 8, default mode (img/s): Faster R-CNN H100 139 / G4 116 / A100 72 / L4 24; RetinaNet 136 / 119 / 70 / 24. One or two runs each.'
         });
       }
+      if (cv.archetype === 'hybrid_pipeline') {
+        items.push({
+          tone: 'amber',
+          title: 'MoGe-2 ViT-L Depth — G4 11.4 / TPU v6e 10.8 / H100 9.8 / A100 4.8 img/s (FP32, With Post-Processing):',
+          body: 'On TPU v6e MoGe-2 runs only on the Nov 3, 2026 TorchTPU image (the Aug 4 image lacks anti-aliased bilinear upsampling), and its depth output differs from CPU by ~0.2% (median) vs ~0.006% on GPU. That newer image is slower under torch.compile on SigLIP2-Giant (~159 vs ~195 img/s), so the best SigLIP2 and MoGe-2 TPU numbers come from different images. MoGe-2 was not measured on L4.'
+        });
+      }
+      items.push({
+        tone: 'blue',
+        title: 'CPU-Only Tier (48 vCPU, FP32, Plain PyTorch) — Fine for Light Classifiers, 10–25x Slower on Detectors & Large Models:',
+        body: 'c4a-standard-48 (Axion) / c4-standard-48 (Intel), img/s at batch 8: ConvNeXt-Tiny 215 / 138, EfficientNet-B0 281 / 183, SigLIP2-Giant 2.5 / 2.0, Faster R-CNN 4.9 / 2.3, RetinaNet 7.3 / 3.3, MoGe-2 0.43 (C4 only). No CPU-specific optimisation, one run each.'
+      });
       items.forEach(function (it) {
         var palette = {
           amber: 'p-3 rounded-lg bg-[#fef7e0] border border-[#feefc3] text-[#3c4043]',
@@ -2360,7 +2383,7 @@
           cnt: leg.a10 || 0,
           gpuMap: (leg.a10 || 0) + '× g4-standard-48 (1× G4 96GB) or g2-standard (1× L4 24GB; check RAM if >180G)',
           tpuMap: 'ct6e-standard-1t (1 Chip = 1 Dev, 32GB) if pure PyTorch',
-          path: 'Drop-In G4/L4 (CUDA) or v6e-1t'
+          path: 'G4/L4 (CUDA; rebuild image for G4) or v6e-1t'
         },
         {
           sku: 'L40S (48 GB, 1 die)',
@@ -3417,12 +3440,12 @@
         renderVisionCockpit();
       });
     }
-    bindCvNumber('cvInpDailyMillions', 'cvDailyMillions', 0.01, 5000, 1.5);
-    bindCvNumber('cvInpRerunMillions', 'cvRerunMillions', 0, 10000, 20);
-    bindCvNumber('cvInpImgSizeMB', 'cvImgSizeMB', 0.1, 500, 20);
+    bindCvNumber('cvInpDailyMillions', 'cvDailyMillions', 0.01, 5000, 2.0);
+    bindCvNumber('cvInpRerunMillions', 'cvRerunMillions', 0, 10000, 30);
+    bindCvNumber('cvInpImgSizeMB', 'cvImgSizeMB', 0.1, 500, 12);
     bindCvNumber('cvInpPeakFactor', 'cvPeakFactor', 1.0, 10.0, 1.6);
-    bindCvNumber('cvInpDeployments', 'cvDeployments', 1, 500, 25);
-    bindCvNumber('cvInpRetrainHrs', 'cvRetrainHrs', 0, 200000, 4380);
+    bindCvNumber('cvInpDeployments', 'cvDeployments', 1, 500, 20);
+    bindCvNumber('cvInpRetrainHrs', 'cvRetrainHrs', 0, 200000, 3650);
 
     var cvArchSel = document.getElementById('cvModelArchetypeSelect');
     if (cvArchSel) {
